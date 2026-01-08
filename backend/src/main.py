@@ -1,14 +1,33 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
-from src.helpers.db import get_db
 
-# 3. FastAPI App
+from src.helpers.db import get_db, engine, Base
+from src.routes.auth_routes import router as auth_router
+
+# Import models to register them with Base.metadata
+from src.models.db_scheams.user import User  # noqa: F401
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Create database tables on startup."""
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    yield
+
+
+# FastAPI App
 app = FastAPI(
     title="Authentication System API",
     description="A simple FastAPI server with PostgreSQL connection",
     version="1.0.0",
+    lifespan=lifespan,
 )
+
+# Include routers
+app.include_router(auth_router)
 
 
 @app.get("/")
