@@ -7,7 +7,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from src.models.db_scheams.user import User
-from src.models.schemas.user_schema import UserCreate, UserResponse, VerifyCodeRequest
+from src.models.schemas.user_schema import (
+    UserCreate,
+    UserResponse,
+    VerifyCodeRequest,
+    ResendCodeRequest,
+)
 from src.helpers.security import hash_password, generate_verification_code
 from src.helpers.email_service import send_verification_email
 
@@ -114,3 +119,52 @@ async def verify_email(verify_data: VerifyCodeRequest, db: AsyncSession) -> dict
     await db.commit()
 
     return {"message": "Email verified successfully"}
+
+
+async def resend_verification_code(
+    resend_data: ResendCodeRequest, db: AsyncSession, background_tasks: BackgroundTasks
+) -> dict:
+    """
+    Resend verification code to user email.
+
+    Args:
+        resend_data: Email
+        db: Database session
+        background_tasks: FastAPI background tasks
+
+    Returns:
+        Success message
+
+    Raises:
+        HTTPException: If user not found or already verified
+    """
+    # Find user by email
+    result = await db.execute(select(User).where(User.email == resend_data.email))
+    user = result.scalar_one_or_none()
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        )
+
+    if user.is_verified:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Email already verified"
+        )
+
+    # Generate new verification code
+    new_code = generate_verification_code()
+
+    # Update user
+    user.verification_token = new_code
+    await db.commit()
+
+    # Send new code email in background
+    background_tasks.add_task(
+        send_verification_email,
+        email=user.email,
+        code=new_code,
+        name=user.name,
+    )
+
+    return {"message": "Verification code resent successfully"}

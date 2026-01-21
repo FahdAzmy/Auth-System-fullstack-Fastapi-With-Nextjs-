@@ -6,8 +6,17 @@ from fastapi import APIRouter, Depends, BackgroundTasks, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.helpers.db import get_db
-from src.models.schemas.user_schema import UserCreate, UserResponse, VerifyCodeRequest
-from src.controllers.auth_controller import signup, verify_email
+from src.models.schemas.user_schema import (
+    UserCreate,
+    UserResponse,
+    VerifyCodeRequest,
+    ResendCodeRequest,
+)
+from src.controllers.auth_controller import (
+    signup,
+    verify_email,
+    resend_verification_code,
+)
 
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -47,3 +56,19 @@ async def verify_user_email(
     Returns success message if verification is successful.
     """
     return await verify_email(verify_data, db)
+
+
+@router.post("/resend-code", status_code=status.HTTP_200_OK)
+async def resend_code(
+    resend_data: ResendCodeRequest,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """
+    Resend verification code to user email.
+
+    - **email**: User's email address
+
+    Returns success message if code is resent successfully.
+    """
+    return await resend_verification_code(resend_data, db, background_tasks)

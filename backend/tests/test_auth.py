@@ -230,3 +230,108 @@ class TestVerifyCode:
         )
 
         assert response.status_code == 422
+
+
+class TestResendCode:
+    """Test cases for POST /auth/resend-code endpoint."""
+
+    @pytest.mark.asyncio
+    async def test_resend_code_success(
+        self, client: AsyncClient, db_session: AsyncSession
+    ):
+        """Test successful resend of verification code."""
+        # Register a user
+        await client.post(
+            "/auth/signup",
+            json={
+                "name": "Resend User",
+                "email": "resend@example.com",
+                "password": "SecurePass123",
+            },
+        )
+
+        # Get the initial code
+        result = await db_session.execute(
+            select(User).where(User.email == "resend@example.com")
+        )
+        user = result.scalar_one()
+        initial_code = user.verification_token
+
+        # Resend code
+        response = await client.post(
+            "/auth/resend-code",
+            json={"email": "resend@example.com"},
+        )
+
+        assert response.status_code == 200
+        assert "resent" in response.json()["message"].lower()
+
+        # Check that code has changed (usually good practice to implement rotation)
+        # Assuming our implementation will generate a new code
+        db_session.expire_all()
+        result = await db_session.execute(
+            select(User).where(User.email == "resend@example.com")
+        )
+        user = result.scalar_one()
+        new_code = user.verification_token
+
+        assert new_code != initial_code
+        assert len(new_code) == 6
+
+    @pytest.mark.asyncio
+    async def test_resend_code_user_not_found(self, client: AsyncClient):
+        """Test resend with non-existent email returns 404."""
+        response = await client.post(
+            "/auth/resend-code",
+            json={"email": "nonexistent@example.com"},
+        )
+
+        assert response.status_code == 404
+        assert "not found" in response.json()["detail"].lower()
+
+    @pytest.mark.asyncio
+    async def test_resend_code_already_verified(
+        self, client: AsyncClient, db_session: AsyncSession
+    ):
+        """Test resend for already verified user returns 400."""
+        # Register and verify user
+        await client.post(
+            "/auth/signup",
+            json={
+                "name": "Verified Resend",
+                "email": "verified_resend@example.com",
+                "password": "SecurePass123",
+            },
+        )
+
+        # Determine code
+        result = await db_session.execute(
+            select(User).where(User.email == "verified_resend@example.com")
+        )
+        user = result.scalar_one()
+        code = user.verification_token
+
+        # Verify
+        await client.post(
+            "/auth/verify-code",
+            json={"email": "verified_resend@example.com", "code": code},
+        )
+
+        # Try to resend
+        response = await client.post(
+            "/auth/resend-code",
+            json={"email": "verified_resend@example.com"},
+        )
+
+        assert response.status_code == 400
+        assert "already verified" in response.json()["detail"].lower()
+
+    @pytest.mark.asyncio
+    async def test_resend_code_invalid_email(self, client: AsyncClient):
+        """Test resend with invalid email format returns 422."""
+        response = await client.post(
+            "/auth/resend-code",
+            json={"email": "invalid-email"},
+        )
+
+        assert response.status_code == 422
