@@ -12,8 +12,15 @@ from src.models.schemas.user_schema import (
     UserResponse,
     VerifyCodeRequest,
     ResendCodeRequest,
+    LoginRequest,
+    LoginResponse,
 )
-from src.helpers.security import hash_password, generate_verification_code
+from src.helpers.security import (
+    hash_password,
+    generate_verification_code,
+    generate_access_token,
+    verify_password,
+)
 from src.helpers.email_service import send_verification_email
 
 
@@ -168,3 +175,27 @@ async def resend_verification_code(
     )
 
     return {"message": "Verification code resent successfully"}
+
+
+async def login(login_data: LoginRequest, db: AsyncSession) -> LoginResponse:
+    """
+    Login user with email and password.
+
+    Args:
+        login_data: Email and password
+        db: Database session
+
+    Returns:
+        Access token and token type
+
+    Raises:
+        HTTPException: If user not found or invalid credentials
+    """
+    # Find user by email
+    result = await db.execute(select(User).where(User.email == login_data.email))
+    user = result.scalar_one_or_none()
+    verify_password(login_data.password, user.hashed_password)
+    # Generate access token
+    access_token = generate_access_token(user.id)
+
+    return LoginResponse(access_token=access_token, token_type="bearer")

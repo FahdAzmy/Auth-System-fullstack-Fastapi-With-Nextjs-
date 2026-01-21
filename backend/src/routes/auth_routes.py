@@ -11,11 +11,14 @@ from src.models.schemas.user_schema import (
     UserResponse,
     VerifyCodeRequest,
     ResendCodeRequest,
+    LoginResponse,
+    LoginRequest,
 )
 from src.controllers.auth_controller import (
     signup,
     verify_email,
     resend_verification_code,
+    login,
 )
 
 
@@ -72,3 +75,19 @@ async def resend_code(
     Returns success message if code is resent successfully.
     """
     return await resend_verification_code(resend_data, db, background_tasks)
+
+
+@router.post("/login", response_model=LoginResponse, status_code=status.HTTP_200_OK)
+async def login_user(
+    login_data: LoginRequest,
+    db: AsyncSession = Depends(get_db),
+) -> LoginResponse:
+    """
+    Login user with email and password.
+
+    - **email**: User's email address
+    - **password**: User's password
+
+    Returns access token and token type.
+    """
+    return await login(login_data, db)
