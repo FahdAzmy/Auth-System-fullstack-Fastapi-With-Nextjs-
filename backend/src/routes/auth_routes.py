@@ -2,7 +2,7 @@
 Authentication routes for FastAPI.
 """
 
-from fastapi import APIRouter, Depends, BackgroundTasks, status
+from fastapi import APIRouter, Depends, BackgroundTasks, status, Response, Cookie
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.helpers.db import get_db
@@ -19,6 +19,7 @@ from src.controllers.auth_controller import (
     verify_email,
     resend_verification_code,
     login,
+    refresh_access_token,
 )
 
 
@@ -80,6 +81,7 @@ async def resend_code(
 @router.post("/login", response_model=LoginResponse, status_code=status.HTTP_200_OK)
 async def login_user(
     login_data: LoginRequest,
+    response: Response,
     db: AsyncSession = Depends(get_db),
 ) -> LoginResponse:
     """
@@ -90,4 +92,20 @@ async def login_user(
 
     Returns access token and token type.
     """
-    return await login(login_data, db)
+    return await login(login_data, response, db)
+
+
+@router.post("/refresh", response_model=LoginResponse)
+async def refresh_endpoint(
+    response: Response,
+    refresh_token: str = Cookie(None),
+    db: AsyncSession = Depends(get_db),
+):
+    return await refresh_access_token(response, refresh_token, db)
+
+
+@router.post("/logout")
+async def logout_endpoint(response: Response):
+    """Logout user by clearing refresh token cookie."""
+    response.delete_cookie(key="refresh_token")
+    return {"message": "Logged out successfully"}

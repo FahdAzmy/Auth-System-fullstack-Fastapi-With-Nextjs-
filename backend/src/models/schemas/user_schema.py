@@ -73,6 +73,20 @@ class LoginRequest(BaseModel):
     email: EmailStr
     password: str = Field(..., min_length=8, max_length=100)
 
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, v: str) -> str:
+        if not v:
+            raise ValueError("Email is required")
+        return v
+
+    @field_validator("password")
+    @classmethod
+    def validate_password(cls, v: str) -> str:
+        if not v:
+            raise ValueError("Password is required")
+        return v
+
 
 class LoginResponse(BaseModel):
     """Schema for user login response."""

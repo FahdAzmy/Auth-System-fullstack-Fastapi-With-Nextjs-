@@ -2,9 +2,12 @@
 Authentication controller - business logic for auth operations.
 """
 
-from fastapi import HTTPException, status, BackgroundTasks
+from fastapi import HTTPException, status, BackgroundTasks, Response, Cookie
+
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from src.helpers.config import settings
+
 
 from src.models.db_scheams.user import User
 from src.models.schemas.user_schema import (
@@ -20,6 +23,9 @@ from src.helpers.security import (
     generate_verification_code,
     generate_access_token,
     verify_password,
+    generate_refresh_token,
+    verify_refresh_token,
+    verify_access_token,
 )
 from src.helpers.email_service import send_verification_email
 
@@ -177,7 +183,9 @@ async def resend_verification_code(
     return {"message": "Verification code resent successfully"}
 
 
-async def login(login_data: LoginRequest, db: AsyncSession) -> LoginResponse:
+async def login(
+    login_data: LoginRequest, response: Response, db: AsyncSession
+) -> LoginResponse:
     """
     Login user with email and password.
 
@@ -194,8 +202,63 @@ async def login(login_data: LoginRequest, db: AsyncSession) -> LoginResponse:
     # Find user by email
     result = await db.execute(select(User).where(User.email == login_data.email))
     user = result.scalar_one_or_none()
-    verify_password(login_data.password, user.hashed_password)
+    if not user or not verify_password(login_data.password, user.hashed_password):
+        raise HTTPException(status_code=401, detail="Invalid email or password")
     # Generate access token
     access_token = generate_access_token(user.id)
+    refresh_token = generate_refresh_token(user.id)
+
+    # Set refresh token in httpOnly cookie
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        secure=False,
+        samesite="lax",
+        max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
+    )
 
     return LoginResponse(access_token=access_token, token_type="bearer")
+
+
+async def refresh_access_token(
+    response: Response,
+    refresh_token: str = Cookie(None),  # قراءة الكوكيز
+    db: AsyncSession = None,
+) -> LoginResponse:
+    """
+    Refresh access token using refresh token from cookie.
+
+    Args:
+        response: FastAPI Response object
+        refresh_token: Refresh token from cookie
+        db: Database session
+
+    Returns:
+        New access token
+
+    Raises:
+        HTTPException: If refresh token is invalid or expired
+    """
+    if not refresh_token:
+        raise HTTPException(status_code=401, detail="Refresh token not found")
+
+    # Verify refresh token
+    payload = verify_refresh_token(refresh_token)
+    user_id = int(payload.get("user_id"))
+
+    # Generate new tokens
+    new_access_token = generate_access_token(user_id)
+    new_refresh_token = generate_refresh_token(user_id)
+
+    # Update refresh token in cookie
+    response.set_cookie(
+        key="refresh_token",
+        value=new_refresh_token,
+        httponly=True,
+        secure=False,
+        samesite="lax",
+        max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
+    )
+
+    return LoginResponse(access_token=new_access_token, token_type="bearer")
