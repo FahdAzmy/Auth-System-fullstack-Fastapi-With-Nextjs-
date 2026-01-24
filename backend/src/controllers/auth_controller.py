@@ -17,6 +17,8 @@ from src.models.schemas.user_schema import (
     ResendCodeRequest,
     LoginRequest,
     LoginResponse,
+    ForgotPasswordRequest,
+    ResetPasswordRequest,
 )
 from src.helpers.security import (
     hash_password,
@@ -27,7 +29,7 @@ from src.helpers.security import (
     verify_refresh_token,
     verify_access_token,
 )
-from src.helpers.email_service import send_verification_email
+from src.helpers.email_service import send_verification_email, send_password_reset_email
 
 
 async def signup(
@@ -262,3 +264,89 @@ async def refresh_access_token(
     )
 
     return LoginResponse(access_token=new_access_token, token_type="bearer")
+
+
+async def forgot_password(
+    forgot_data: ForgotPasswordRequest,
+    db: AsyncSession,
+    background_tasks: BackgroundTasks,
+) -> dict:
+    """
+    Send password reset code to user's email.
+
+    Args:
+        forgot_data: Email address
+        db: Database session
+        background_tasks: FastAPI background tasks for async email
+
+    Returns:
+        Success message
+
+    Raises:
+        HTTPException: If user not found
+    """
+    # Find user by email
+    result = await db.execute(select(User).where(User.email == forgot_data.email))
+    user = result.scalar_one_or_none()
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        )
+
+    # Generate reset code
+    reset_code = generate_verification_code()
+
+    # Store reset code in verification_token
+    user.verification_token = reset_code
+    await db.commit()
+
+    # Send reset code email in background
+    background_tasks.add_task(
+        send_password_reset_email,
+        email=user.email,
+        code=reset_code,
+        name=user.name,
+    )
+
+    return {"message": "Password reset code sent to your email"}
+
+
+async def reset_password(
+    reset_data: ResetPasswordRequest,
+    db: AsyncSession,
+) -> dict:
+    """
+    Reset user's password with verification code.
+
+    Args:
+        reset_data: Email, code, and new password
+        db: Database session
+
+    Returns:
+        Success message
+
+    Raises:
+        HTTPException: If user not found or code is invalid
+    """
+    # Find user by email
+    result = await db.execute(select(User).where(User.email == reset_data.email))
+    user = result.scalar_one_or_none()
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        )
+
+    # Check reset code
+    if user.verification_token is None or user.verification_token != reset_data.code:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid reset code"
+        )
+
+    # Hash new password and update
+    user.hashed_password = hash_password(reset_data.new_password)
+    user.verification_token = None  # Clear the code after use
+    await db.commit()
+
+    return {"message": "Password reset successfully"}

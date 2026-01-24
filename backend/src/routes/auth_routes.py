@@ -13,6 +13,8 @@ from src.models.schemas.user_schema import (
     ResendCodeRequest,
     LoginResponse,
     LoginRequest,
+    ForgotPasswordRequest,
+    ResetPasswordRequest,
 )
 from src.controllers.auth_controller import (
     signup,
@@ -20,6 +22,8 @@ from src.controllers.auth_controller import (
     resend_verification_code,
     login,
     refresh_access_token,
+    forgot_password,
+    reset_password,
 )
 
 
@@ -109,3 +113,36 @@ async def logout_endpoint(response: Response):
     """Logout user by clearing refresh token cookie."""
     response.delete_cookie(key="refresh_token")
     return {"message": "Logged out successfully"}
+
+
+@router.post("/forgot-password", status_code=status.HTTP_200_OK)
+async def forgot_password_endpoint(
+    forgot_data: ForgotPasswordRequest,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """
+    Request password reset code.
+
+    - **email**: User's email address
+
+    Sends a 6-digit reset code to the user's email.
+    """
+    return await forgot_password(forgot_data, db, background_tasks)
+
+
+@router.post("/reset-password", status_code=status.HTTP_200_OK)
+async def reset_password_endpoint(
+    reset_data: ResetPasswordRequest,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """
+    Reset password with verification code.
+
+    - **email**: User's email address
+    - **code**: 6-digit reset code from email
+    - **new_password**: New password (minimum 8 characters)
+
+    Returns success message if password is reset successfully.
+    """
+    return await reset_password(reset_data, db)
