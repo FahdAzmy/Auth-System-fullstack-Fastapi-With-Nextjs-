@@ -1,22 +1,10 @@
 'use client';
 
-import { Button } from "@/components/ui/button"
-
-import { Label } from "@/components/ui/label"
-
-import { CardContent } from "@/components/ui/card"
-
-import { CardDescription } from "@/components/ui/card"
-
-import { CardTitle } from "@/components/ui/card"
-
-import { CardHeader } from "@/components/ui/card"
-
-import { Card } from "@/components/ui/card"
-
-import React from "react"
-
-import { useState } from 'react';
+import React, { useState, useEffect } from "react"
+import { useDispatch, useSelector } from 'react-redux';
+import { AppDispatch, RootState } from '@/store/store';
+import { signup } from '@/store/auth/auth-actions';
+import { clearError, setPendingEmail } from '@/store/auth/auth-slice';
 import { useLanguage } from '@/lib/language-context';
 import { validateEmail, validatePassword, validateFullName, validatePasswordMatch, type ValidationErrors } from '@/lib/validation';
 import { Input } from '@/components/ui/input';
@@ -31,16 +19,34 @@ interface SignUpPageProps {
 
 export function SignUpPage({ onSuccess, onLoginClick }: SignUpPageProps) {
   const { t, isRTL } = useLanguage();
+  const dispatch = useDispatch<AppDispatch>();
+  const { isLoading, error, successMessage } = useSelector((state: RootState) => state.auth);
+
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
     password: '',
     confirmPassword: '',
   });
-  const [errors, setErrors] = useState<ValidationErrors>({});
-  const [isLoading, setIsLoading] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
   const [agreeToTerms, setAgreeToTerms] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Clear errors on unmount
+  useEffect(() => {
+    return () => {
+      dispatch(clearError());
+    };
+  }, [dispatch]);
+
+  // Handle success message -> transition
+  useEffect(() => {
+    if (successMessage && onSuccess) {
+      const timer = setTimeout(() => {
+        onSuccess();
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [successMessage, onSuccess]);
 
   const validateForm = (): boolean => {
     const newErrors: ValidationErrors = {};
@@ -59,7 +65,7 @@ export function SignUpPage({ onSuccess, onLoginClick }: SignUpPageProps) {
 
     if (!agreeToTerms) newErrors.terms = 'requiredField';
 
-    setErrors(newErrors);
+    setValidationErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
@@ -67,44 +73,25 @@ export function SignUpPage({ onSuccess, onLoginClick }: SignUpPageProps) {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
 
-    if (errors[name]) {
-      const newErrors = { ...errors };
+    if (validationErrors[name]) {
+      const newErrors = { ...validationErrors };
       delete newErrors[name];
-      setErrors(newErrors);
+      setValidationErrors(newErrors);
     }
+    if (error) dispatch(clearError());
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!validateForm()) return;
 
-    setIsLoading(true);
-    setMessage(null);
+    dispatch(setPendingEmail(formData.email));
 
-    try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-
-      setMessage({ type: 'success', text: t('signUpSuccess') });
-      setFormData({
-        fullName: '',
-        email: '',
-        password: '',
-        confirmPassword: '',
-      });
-      setAgreeToTerms(false);
-      setErrors({});
-
-      if (onSuccess) {
-        setTimeout(onSuccess, 500);
-      }
-    } catch (err) {
-      console.error(err);
-      setMessage({ type: 'error', text: t('signUpError') });
-    } finally {
-      setIsLoading(false);
-    }
+    dispatch(signup({
+      name: formData.fullName,
+      email: formData.email,
+      password: formData.password
+    }));
   };
 
   return (
@@ -133,15 +120,15 @@ export function SignUpPage({ onSuccess, onLoginClick }: SignUpPageProps) {
         </div>
 
         {/* Success/Error Message */}
-        {message && (
+        {(error || successMessage) && (
           <div
             className={`mb-6 p-4 rounded-2xl font-semibold backdrop-blur-sm border-2 transition-all duration-300 ${
-              message.type === 'success'
+              successMessage
                 ? 'bg-green-50/80 dark:bg-green-950/30 text-green-900 dark:text-green-200 border-green-300 dark:border-green-700'
                 : 'bg-destructive/10 text-destructive border-destructive/20'
             }`}
           >
-            {message.text}
+            {successMessage || error}
           </div>
         )}
 
@@ -161,15 +148,15 @@ export function SignUpPage({ onSuccess, onLoginClick }: SignUpPageProps) {
               onChange={handleChange}
               disabled={isLoading}
               className={`h-14 text-base rounded-2xl px-5 border-2 font-medium transition-all duration-200 ${
-                errors.fullName
+                validationErrors.fullName
                   ? 'border-destructive bg-destructive/5'
                   : 'border-border hover:border-primary focus:border-primary'
               }`}
             />
-            {errors.fullName && (
+            {validationErrors.fullName && (
               <p className="text-sm font-semibold text-destructive flex items-center gap-2 px-1">
                 <span className="w-2 h-2 rounded-full bg-destructive" />
-                {t(errors.fullName)}
+                {t(validationErrors.fullName)}
               </p>
             )}
           </div>
@@ -188,15 +175,15 @@ export function SignUpPage({ onSuccess, onLoginClick }: SignUpPageProps) {
               onChange={handleChange}
               disabled={isLoading}
               className={`h-14 text-base rounded-2xl px-5 border-2 font-medium transition-all duration-200 ${
-                errors.email
+                validationErrors.email
                   ? 'border-destructive bg-destructive/5'
                   : 'border-border hover:border-primary focus:border-primary'
               }`}
             />
-            {errors.email && (
+            {validationErrors.email && (
               <p className="text-sm font-semibold text-destructive flex items-center gap-2 px-1">
                 <span className="w-2 h-2 rounded-full bg-destructive" />
-                {t(errors.email)}
+                {t(validationErrors.email)}
               </p>
             )}
           </div>
@@ -215,18 +202,18 @@ export function SignUpPage({ onSuccess, onLoginClick }: SignUpPageProps) {
               onChange={handleChange}
               disabled={isLoading}
               className={`h-14 text-base rounded-2xl px-5 border-2 font-medium transition-all duration-200 ${
-                errors.password
+                validationErrors.password
                   ? 'border-destructive bg-destructive/5'
                   : 'border-border hover:border-primary focus:border-primary'
               }`}
             />
-            {formData.password && !errors.password && (
+            {formData.password && !validationErrors.password && (
               <PasswordStrengthIndicator password={formData.password} />
             )}
-            {errors.password && (
+            {validationErrors.password && (
               <p className="text-sm font-semibold text-destructive flex items-center gap-2 px-1">
                 <span className="w-2 h-2 rounded-full bg-destructive" />
-                {t(errors.password)}
+                {t(validationErrors.password)}
               </p>
             )}
           </div>
@@ -245,15 +232,15 @@ export function SignUpPage({ onSuccess, onLoginClick }: SignUpPageProps) {
               onChange={handleChange}
               disabled={isLoading}
               className={`h-14 text-base rounded-2xl px-5 border-2 font-medium transition-all duration-200 ${
-                errors.confirmPassword
+                validationErrors.confirmPassword
                   ? 'border-destructive bg-destructive/5'
                   : 'border-border hover:border-primary focus:border-primary'
               }`}
             />
-            {errors.confirmPassword && (
+            {validationErrors.confirmPassword && (
               <p className="text-sm font-semibold text-destructive flex items-center gap-2 px-1">
                 <span className="w-2 h-2 rounded-full bg-destructive" />
-                {t(errors.confirmPassword)}
+                {t(validationErrors.confirmPassword)}
               </p>
             )}
           </div>
@@ -265,10 +252,10 @@ export function SignUpPage({ onSuccess, onLoginClick }: SignUpPageProps) {
               checked={agreeToTerms}
               onCheckedChange={(checked) => {
                 setAgreeToTerms(checked as boolean);
-                if (errors.terms) {
-                  const newErrors = { ...errors };
+                if (validationErrors.terms) {
+                  const newErrors = { ...validationErrors };
                   delete newErrors.terms;
-                  setErrors(newErrors);
+                  setValidationErrors(newErrors);
                 }
               }}
               disabled={isLoading}
@@ -277,10 +264,10 @@ export function SignUpPage({ onSuccess, onLoginClick }: SignUpPageProps) {
               {t('agreeTerms')} <span className="text-primary font-bold">{t('termsLink')}</span>
             </label>
           </div>
-          {errors.terms && (
+          {validationErrors.terms && (
             <p className="text-sm font-semibold text-destructive flex items-center gap-2 px-1">
               <span className="w-2 h-2 rounded-full bg-destructive" />
-              {t(errors.terms)}
+              {t(validationErrors.terms)}
             </p>
           )}
 

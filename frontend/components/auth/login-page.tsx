@@ -1,41 +1,50 @@
 'use client';
 
-import React from "react"
-
-import { useState } from 'react';
+import React, { useState, useEffect } from "react"
+import { useDispatch, useSelector } from 'react-redux';
+import { AppDispatch, RootState } from '@/store/store';
+import { login } from '@/store/auth/auth-actions';
+import { clearError } from '@/store/auth/auth-slice';
 import { useLanguage } from '@/lib/language-context';
 import { validateEmail, validatePassword, type ValidationErrors } from '@/lib/validation';
 import { Input } from '@/components/ui/input';
 import { Loader2, ArrowRight, Mail, Lock } from 'lucide-react';
 
 interface LoginPageProps {
-  onSuccess?: () => void;
   onSignUpClick?: () => void;
   onForgotPasswordClick?: () => void;
 }
 
 export function LoginPage({
-  onSuccess,
   onSignUpClick,
   onForgotPasswordClick,
 }: LoginPageProps) {
   const { t, isRTL } = useLanguage();
+  const dispatch = useDispatch<AppDispatch>();
+  const { isLoading, error } = useSelector((state: RootState) => state.auth);
+  
   const [formData, setFormData] = useState({
     email: '',
     password: '',
   });
-  const [errors, setErrors] = useState<ValidationErrors>({});
-  const [isLoading, setIsLoading] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
+
+  // Clear errors on unmount
+  useEffect(() => {
+    return () => {
+      dispatch(clearError());
+    };
+  }, [dispatch]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-    if (errors[name]) {
-      const newErrors = { ...errors };
+    if (validationErrors[name]) {
+      const newErrors = { ...validationErrors };
       delete newErrors[name];
-      setErrors(newErrors);
+      setValidationErrors(newErrors);
     }
+    if (error) dispatch(clearError());
   };
 
   const validateForm = (): boolean => {
@@ -47,7 +56,7 @@ export function LoginPage({
     const passwordError = validatePassword(formData.password);
     if (passwordError) newErrors.password = passwordError;
 
-    setErrors(newErrors);
+    setValidationErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
@@ -55,20 +64,7 @@ export function LoginPage({
     e.preventDefault();
     if (!validateForm()) return;
 
-    setIsLoading(true);
-    setMessage(null);
-
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      setMessage({ type: 'success', text: t('loginSuccess') });
-      setFormData({ email: '', password: '' });
-      setErrors({});
-      if (onSuccess) setTimeout(onSuccess, 500);
-    } catch (err) {
-      setMessage({ type: 'error', text: t('loginError') });
-    } finally {
-      setIsLoading(false);
-    }
+    dispatch(login(formData));
   };
 
   return (
@@ -96,16 +92,10 @@ export function LoginPage({
           <p className="text-lg text-muted-foreground font-medium">{t('loginDescription')}</p>
         </div>
 
-        {/* Success/Error Message */}
-        {message && (
-          <div
-            className={`mb-6 p-4 rounded-2xl font-semibold backdrop-blur-sm border-2 transition-all duration-300 ${
-              message.type === 'success'
-                ? 'bg-green-50/80 dark:bg-green-950/30 text-green-900 dark:text-green-200 border-green-300 dark:border-green-700'
-                : 'bg-destructive/10 text-destructive border-destructive/20'
-            }`}
-          >
-            {message.text}
+        {/* Error Message */}
+        {error && (
+          <div className="mb-6 p-4 rounded-2xl font-bold border-2 animate-reveal transition-all duration-300 bg-destructive/10 text-destructive border-destructive/20">
+            {error}
           </div>
         )}
 
@@ -126,16 +116,16 @@ export function LoginPage({
                 onChange={handleChange}
                 disabled={isLoading}
                 className={`h-14 text-base rounded-2xl px-5 border-2 font-medium transition-all duration-200 ${
-                  errors.email
+                  validationErrors.email
                     ? 'border-destructive bg-destructive/5 focus:ring-destructive/20'
                     : 'border-border hover:border-primary focus:border-primary'
                 }`}
               />
             </div>
-            {errors.email && (
+            {validationErrors.email && (
               <p className="text-sm font-semibold text-destructive flex items-center gap-2 px-1">
                 <span className="w-2 h-2 rounded-full bg-destructive" />
-                {t(errors.email)}
+                {t(validationErrors.email)}
               </p>
             )}
           </div>
@@ -154,15 +144,15 @@ export function LoginPage({
               onChange={handleChange}
               disabled={isLoading}
               className={`h-14 text-base rounded-2xl px-5 border-2 font-medium transition-all duration-200 ${
-                errors.password
+                validationErrors.password
                   ? 'border-destructive bg-destructive/5 focus:ring-destructive/20'
                   : 'border-border hover:border-primary focus:border-primary'
               }`}
             />
-            {errors.password && (
+            {validationErrors.password && (
               <p className="text-sm font-semibold text-destructive flex items-center gap-2 px-1">
                 <span className="w-2 h-2 rounded-full bg-destructive" />
-                {t(errors.password)}
+                {t(validationErrors.password)}
               </p>
             )}
           </div>

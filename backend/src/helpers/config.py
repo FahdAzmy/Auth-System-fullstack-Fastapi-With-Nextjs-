@@ -35,6 +35,8 @@ class Settings(BaseSettings):
     MAIL_STARTTLS: bool = True
     MAIL_SSL_TLS: bool = False
 
+    CORS_ORIGINS: str
+
     def get_database_url(self) -> str:
         # If DATABASE_URL is provided in .env, use it (and make sure it uses asyncpg)
         if self.DATABASE_URL:

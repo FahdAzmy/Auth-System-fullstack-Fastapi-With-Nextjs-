@@ -30,7 +30,22 @@ axiosInstance.interceptors.request.use(
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
-    const message = error.response?.data?.detail || error.message || 'An error occurred';
+    let message = 'An error occurred';
+    
+    if (error.response?.data?.detail) {
+      const detail = error.response.data.detail;
+      if (Array.isArray(detail)) {
+        // Handle Pydantic validation errors (array of objects)
+        message = detail.map((err: any) => err.msg || 'Invalid input').join(', ');
+      } else if (typeof detail === 'string') {
+        message = detail;
+      } else if (typeof detail === 'object') {
+          message = JSON.stringify(detail);
+      }
+    } else if (error.message) {
+      message = error.message;
+    }
+    
     return Promise.reject(message);
   }
 );

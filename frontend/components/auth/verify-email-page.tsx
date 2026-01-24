@@ -1,8 +1,10 @@
 'use client';
 
-import React from "react"
-
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react"
+import { useDispatch, useSelector } from 'react-redux';
+import { AppDispatch, RootState } from '@/store/store';
+import { verifyEmail, resendCode } from '@/store/auth/auth-actions';
+import { clearError, clearSuccess, clearPendingEmail } from '@/store/auth/auth-slice';
 import { useLanguage } from '@/lib/language-context';
 import { validateVerificationCode, type ValidationErrors } from '@/lib/validation';
 import { Button } from '@/components/ui/button';
@@ -18,12 +20,34 @@ interface VerifyEmailPageProps {
 
 export function VerifyEmailPage({ onSuccess, onBackClick }: VerifyEmailPageProps) {
   const { t, isRTL } = useLanguage();
+  const dispatch = useDispatch<AppDispatch>();
+  const { isLoading, error, successMessage, pendingEmail } = useSelector((state: RootState) => state.auth);
+  
   const [code, setCode] = useState('');
-  const [errors, setErrors] = useState<ValidationErrors>({});
-  const [isLoading, setIsLoading] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
   const [canResend, setCanResend] = useState(false);
   const [timeLeft, setTimeLeft] = useState(60);
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Clear state on unmount
+  useEffect(() => {
+    dispatch(clearSuccess());
+    return () => {
+      dispatch(clearError());
+      dispatch(clearSuccess());
+    };
+  }, [dispatch]);
+
+  // Handle success navigation
+  useEffect(() => {
+    if (successMessage && !successMessage.includes('sent') && onSuccess) {
+       // Assuming 'sent' implies resend code success, else verify success
+       const timer = setTimeout(() => {
+         dispatch(clearPendingEmail());
+         onSuccess();
+       }, 1500);
+       return () => clearTimeout(timer);
+    }
+  }, [successMessage, onSuccess, dispatch]);
 
   useEffect(() => {
     if (timeLeft > 0 && !canResend) {
@@ -36,65 +60,40 @@ export function VerifyEmailPage({ onSuccess, onBackClick }: VerifyEmailPageProps
 
   const validateForm = (): boolean => {
     const newErrors: ValidationErrors = {};
-
     const codeError = validateVerificationCode(code);
     if (codeError) newErrors.code = codeError;
-
-    setErrors(newErrors);
+    setValidationErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!validateForm()) return;
-
-    setIsLoading(true);
-    setMessage(null);
-
-    try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-
-      setMessage({ type: 'success', text: t('emailVerificationSuccess') });
-      setCode('');
-      setErrors({});
-
-      if (onSuccess) {
-        setTimeout(onSuccess, 500);
-      }
-    } catch (err) {
-      console.error(err);
-      setMessage({ type: 'error', text: t('emailError') });
-    } finally {
-      setIsLoading(false);
+    
+    if (!pendingEmail) {
+      dispatch(clearError());
+      return;
     }
+    
+    dispatch(verifyEmail({ email: pendingEmail, code }));
   };
 
   const handleResendCode = async () => {
-    setIsLoading(true);
-    try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      setMessage({ type: 'success', text: t('emailVerificationSuccess') });
-      setTimeLeft(60);
-      setCanResend(false);
-    } catch (err) {
-      console.error(err);
-      setMessage({ type: 'error', text: t('emailError') });
-    } finally {
-      setIsLoading(false);
-    }
+    if (!pendingEmail) return;
+    dispatch(resendCode(pendingEmail));
+    setTimeLeft(60);
+    setCanResend(false);
   };
 
   const handleCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.replace(/\D/g, '').slice(0, 6);
     setCode(value);
-    if (errors.code) {
-      const newErrors = { ...errors };
+    if (validationErrors.code) {
+      const newErrors = { ...validationErrors };
       delete newErrors.code;
-      setErrors(newErrors);
+      setValidationErrors(newErrors);
     }
+    if (error) dispatch(clearError());
   };
 
   return (
@@ -113,15 +112,15 @@ export function VerifyEmailPage({ onSuccess, onBackClick }: VerifyEmailPageProps
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            {message && (
+            {(error || successMessage) && (
               <div
                 className={`p-3 rounded-md text-sm ${
-                  message.type === 'success'
+                  successMessage
                     ? 'bg-green-50 text-green-800 dark:bg-green-900/20 dark:text-green-300'
                     : 'bg-red-50 text-red-800 dark:bg-red-900/20 dark:text-red-300'
                 }`}
               >
-                {message.text}
+                {successMessage || error}
               </div>
             )}
 
@@ -136,11 +135,11 @@ export function VerifyEmailPage({ onSuccess, onBackClick }: VerifyEmailPageProps
                 disabled={isLoading}
                 maxLength={6}
                 className={`text-center text-2xl tracking-widest font-mono ${
-                  errors.code ? 'border-red-500' : ''
+                  validationErrors.code ? 'border-red-500' : ''
                 }`}
               />
-              {errors.code && (
-                <p className="text-sm text-red-500">{t(errors.code)}</p>
+              {validationErrors.code && (
+                <p className="text-sm text-red-500">{t(validationErrors.code)}</p>
               )}
             </div>
 

@@ -20,6 +20,7 @@ interface User {
 interface AuthState {
   user: User | null;
   accessToken: string | null;
+  pendingEmail: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
@@ -29,6 +30,7 @@ interface AuthState {
 const initialState: AuthState = {
   user: null,
   accessToken: null,
+  pendingEmail: null,
   isAuthenticated: false,
   isLoading: false,
   error: null,
@@ -49,6 +51,12 @@ const authSlice = createSlice({
     setAccessToken: (state, action: PayloadAction<string>) => {
       state.accessToken = action.payload;
       state.isAuthenticated = true;
+    },
+    setPendingEmail: (state, action: PayloadAction<string>) => {
+      state.pendingEmail = action.payload;
+    },
+    clearPendingEmail: (state) => {
+      state.pendingEmail = null;
     },
   },
   extraReducers: (builder) => {
@@ -137,5 +145,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { clearError, clearSuccess, setAccessToken } = authSlice.actions;
+export const { clearError, clearSuccess, setAccessToken, setPendingEmail, clearPendingEmail } = authSlice.actions;
 export default authSlice.reducer;

@@ -2,9 +2,11 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
+from fastapi.middleware.cors import CORSMiddleware
 
 from src.helpers.db import get_db, engine, Base
 from src.routes.auth_routes import router as auth_router
+from src.helpers.config import Settings
 
 # Import models to register them with Base.metadata
 from src.models.db_scheams.user import User  # noqa: F401
@@ -25,6 +27,18 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
+
+# cors
+origins = Settings().CORS_ORIGINS.split(",")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],  # GET, POST, PUT, DELETE, etc.
+    allow_headers=["*"],  # Authorization, Content-Type, etc.
+)
+
 
 # Include routers
 app.include_router(auth_router)
