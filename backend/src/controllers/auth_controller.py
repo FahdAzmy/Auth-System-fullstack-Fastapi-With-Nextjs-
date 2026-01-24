@@ -245,7 +245,7 @@ async def refresh_access_token(
 
     # Verify refresh token
     payload = verify_refresh_token(refresh_token)
-    user_id = int(payload.get("user_id"))
+    user_id = payload.get("user_id")
 
     # Generate new tokens
     new_access_token = generate_access_token(user_id)

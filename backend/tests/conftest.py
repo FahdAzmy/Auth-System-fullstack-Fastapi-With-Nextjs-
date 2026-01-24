@@ -19,7 +19,7 @@ from src.models.db_scheams.user import User  # noqa: F401
 
 
 # Create test engine using the same database
-test_engine = create_async_engine(settings.get_database_url(), echo=True)
+test_engine = create_async_engine(settings.get_test_database_url(), echo=True)
 TestSessionLocal = async_sessionmaker(
     bind=test_engine,
     class_=AsyncSession,

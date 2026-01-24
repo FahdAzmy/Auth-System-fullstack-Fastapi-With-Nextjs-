@@ -16,6 +16,8 @@ class Settings(BaseSettings):
 
     # Use field name matching the key in .env if provided
     DATABASE_URL: str | None = None
+    TEST_DATABASE_URL: str | None = None
+
     # JWT
     SECRET_KEY: str
     ALGORITHM: str = "HS256"
@@ -40,6 +42,12 @@ class Settings(BaseSettings):
 
         # Otherwise, construct it from individual parts
         return f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_SERVER}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+
+    def get_test_database_url(self) -> str:
+        if not self.TEST_DATABASE_URL:
+            raise RuntimeError("❌ TEST_DATABASE_URL is not set")
+
+        return self.TEST_DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://")
 
     class Config:
         env_file = os.path.join(BASE_DIR, ".env")

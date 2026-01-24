@@ -5,11 +5,13 @@ Uses bcrypt directly for compatibility with newer bcrypt versions.
 
 import secrets
 import bcrypt
+import uuid
 from src.helpers.config import settings
-from jose import jwt
+from jose import jwt, JWTError
+from jose.exceptions import ExpiredSignatureError
 from datetime import datetime, timedelta
 from typing import Dict
-from fastapi import Response
+from fastapi import HTTPException, Response
 
 
 def hash_password(password: str) -> str:
@@ -55,7 +57,7 @@ def generate_verification_code() -> str:
     return str(secrets.randbelow(900000) + 100000)  # Ensures 6 digits (100000-999999)
 
 
-def generate_access_token(user_id: int) -> str:
+def generate_access_token(user_id: str | int) -> str:
     """
     Generate a JWT access token for a user.
 
@@ -75,7 +77,7 @@ def generate_access_token(user_id: int) -> str:
     return jwt.encode(payload, settings.SECRET_KEY, algorithm="HS256")
 
 
-def generate_refresh_token(user_id: int) -> str:
+def generate_refresh_token(user_id: str | int) -> str:
     """
     Generate a JWT refresh token for a user.
 
@@ -91,6 +93,7 @@ def generate_refresh_token(user_id: int) -> str:
         "exp": expire,
         "iat": datetime.utcnow(),
         "type": "refresh",
+        "jti": str(uuid.uuid4()),
     }
     return jwt.encode(payload, settings.REFRESH_SECRET_KEY, algorithm="HS256")
 
@@ -113,9 +116,9 @@ def verify_access_token(token: str) -> Dict:
         if payload.get("type") != "access":
             raise HTTPException(status_code=401, detail="Invalid token type")
         return payload
-    except jwt.ExpiredSignatureError:
+    except ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Token has expired")
-    except jwt.InvalidTokenError:
+    except JWTError:
         raise HTTPException(status_code=401, detail="Invalid token")
 
 
@@ -137,7 +140,7 @@ def verify_refresh_token(token: str) -> Dict:
         if payload.get("type") != "refresh":
             raise HTTPException(status_code=401, detail="Invalid token type")
         return payload
-    except jwt.ExpiredSignatureError:
+    except ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Refresh token has expired")
-    except jwt.InvalidTokenError:
+    except JWTError:
         raise HTTPException(status_code=401, detail="Invalid refresh token")
