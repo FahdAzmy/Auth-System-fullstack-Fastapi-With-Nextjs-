@@ -77,5 +77,11 @@
     "english": "English",
     "arabic": "العربية",
     "loading": "Loading...",
-    "pleaseWait": "Please wait..."
+    "pleaseWait": "Please wait...",
+    "passwordStrength": "Password Strength",
+    "strengthWeak": "Weak",
+    "strengthFair": "Fair",
+    "strengthGood": "Good",
+    "strengthStrong": "Strong",
+    "passwordRequirements": "Use uppercase, lowercase, numbers, and symbols"
 }

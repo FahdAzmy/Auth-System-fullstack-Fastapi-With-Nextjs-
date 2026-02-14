@@ -77,5 +77,11 @@
     "english": "English",
     "arabic": "العربية",
     "loading": "جاري التحميل...",
-    "pleaseWait": "يرجى الانتظار..."
+    "pleaseWait": "يرجى الانتظار...",
+    "passwordStrength": "قوة كلمة المرور",
+    "strengthWeak": "ضعيفة",
+    "strengthFair": "مقبولة",
+    "strengthGood": "جيدة",
+    "strengthStrong": "قوية",
+    "passwordRequirements": "استخدم أحرفاً كبيرة وصغيرة، أرقاماً ورموزاً"
 }
