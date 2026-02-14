@@ -1,12 +1,6 @@
 'use client';
 
-import { Button } from "@/components/ui/button"
-import { Label } from "@/components/ui/label"
-import { CardContent } from "@/components/ui/card"
-import { CardDescription } from "@/components/ui/card"
-import { CardTitle } from "@/components/ui/card"
-import { CardHeader } from "@/components/ui/card"
-import { Card } from "@/components/ui/card"
+
 import React, { useState, useEffect } from "react"
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '@/store/store';
@@ -46,10 +40,10 @@ export function ForgotPasswordPage({ onSuccess, onBackClick }: ForgotPasswordPag
   // Handle success navigation or step change
   useEffect(() => {
     if (successMessage) {
-        if (step === 'email' && successMessage.includes('sent')) {
+        if (step === 'email' && successMessage === 'PASSWORD_RESET_CODE_SENT') {
             setStep('reset');
             dispatch(clearSuccess()); // Clear so it doesn't trigger again immediately or confuse next step
-        } else if (step === 'reset' && !successMessage.includes('sent') && onSuccess) {
+        } else if (step === 'reset' && successMessage === 'PASSWORD_RESET_SUCCESS' && onSuccess) {
              const timer = setTimeout(() => {
                onSuccess();
              }, 1500);
@@ -116,30 +110,24 @@ export function ForgotPasswordPage({ onSuccess, onBackClick }: ForgotPasswordPag
   };
 
   return (
-    <div className={`min-h-screen flex items-center justify-center p-4 ${isRTL ? 'rtl' : 'ltr'}`}>
-      {/* Animated Background Elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 right-10 w-72 h-72 bg-primary/10 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-20 left-10 w-72 h-72 bg-secondary/10 rounded-full blur-3xl animate-pulse" />
-      </div>
+    <div className={`min-h-screen flex items-center justify-center p-4 overflow-hidden relative ${isRTL ? 'rtl' : 'ltr'}`}>
+      
+      {/* Dynamic Background Orbs */}
+      <div className="absolute top-[-10%] left-[20%] w-[40rem] h-[40rem] bg-accent/20 rounded-full blur-3xl opacity-40 animate-pulse mix-blend-screen" />
+      <div className="absolute bottom-[-10%] right-[10%] w-[40rem] h-[40rem] bg-primary/20 rounded-full blur-3xl opacity-40 animate-pulse delay-500 mix-blend-screen" />
 
-      <div className="relative z-10 w-full max-w-md">
-        {/* Icon Header */}
-        <div className="mb-8 flex justify-center">
-          <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-br from-primary to-secondary rounded-full blur-2xl opacity-75 animate-pulse" />
-            <div className="relative w-20 h-20 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center shadow-2xl">
-              <Lock className="w-10 h-10 text-primary-foreground" />
-            </div>
+      {/* Main Glass Card */}
+      <div className="relative z-10 w-full max-w-md glass-card rounded-3xl p-8 md:p-10 animate-fade-in-up">
+        
+        {/* Header with Icon */}
+        <div className="mb-8 text-center">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/80 to-accent/80 shadow-lg shadow-primary/30 mb-6 rotate-3 hover:rotate-6 transition-transform duration-300">
+            <Lock className="w-8 h-8 text-white drop-shadow-md" />
           </div>
-        </div>
-
-        {/* Title Section */}
-        <div className="text-center mb-8">
-          <h1 className="text-5xl font-black tracking-tighter mb-3">
+          <h1 className="text-3xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary via-purple-500 to-accent mb-2">
             {step === 'email' ? t('forgotPasswordTitle') : t('resetPasswordTitle')}
           </h1>
-          <p className="text-lg text-muted-foreground font-medium">
+          <p className="text-muted-foreground font-medium text-base">
             {step === 'email' ? t('forgotPasswordDescription') : t('resetPasswordDescription')}
           </p>
         </div>
@@ -147,79 +135,83 @@ export function ForgotPasswordPage({ onSuccess, onBackClick }: ForgotPasswordPag
         {/* Success/Error Message */}
         {(error || successMessage) && (
           <div
-            className={`mb-6 p-4 rounded-2xl font-semibold backdrop-blur-sm border-2 transition-all duration-300 ${
+            className={`mb-6 p-4 rounded-xl border font-semibold backdrop-blur-md flex items-center gap-3 animate-shake ${
               successMessage
-                ? 'bg-green-50/80 dark:bg-green-950/30 text-green-900 dark:text-green-200 border-green-300 dark:border-green-700'
-                : 'bg-destructive/10 text-destructive border-destructive/20'
+                ? 'bg-green-500/10 border-green-500/20 text-green-600 dark:text-green-400'
+                : 'bg-destructive/10 border-destructive/20 text-destructive'
             }`}
           >
-            {successMessage || error}
+            <div className={`w-2 h-2 rounded-full animate-pulse ${successMessage ? 'bg-green-500' : 'bg-destructive'}`} />
+            {t((successMessage || error)!)}
           </div>
         )}
 
         {step === 'email' ? (
           <form onSubmit={handleEmailSubmit} className="space-y-6">
             {/* Email Field */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 px-1">
-                <Mail className="w-5 h-5 text-primary" />
-                <label className="text-sm font-bold uppercase tracking-wider">{t('email')}</label>
+            <div className="space-y-1.5 group">
+              <label className="text-sm font-semibold text-foreground/80 ml-1 group-focus-within:text-primary transition-colors">
+                {t('email')}
+              </label>
+              <div className="relative">
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                <Input
+                  type="email"
+                  placeholder={t('emailPlaceholder')}
+                  value={email}
+                  onChange={(e) => handleInputChange(e, 'email')}
+                  disabled={isLoading}
+                  className={`pl-12 h-12 rounded-xl border-border/50 bg-background/50 backdrop-blur-sm focus:bg-background transition-all duration-300 shadow-sm hover:shadow-md focus:shadow-lg focus:ring-2 focus:ring-primary/20 ${
+                    validationErrors.email ? 'border-destructive focus:ring-destructive/20' : ''
+                  }`}
+                />
               </div>
-              <Input
-                type="email"
-                placeholder={t('emailPlaceholder')}
-                value={email}
-                onChange={(e) => handleInputChange(e, 'email')}
-                disabled={isLoading}
-                className={`h-14 text-base rounded-2xl px-5 border-2 font-medium transition-all duration-200 ${
-                  validationErrors.email
-                    ? 'border-destructive bg-destructive/5'
-                    : 'border-border hover:border-primary focus:border-primary'
-                }`}
-              />
               {validationErrors.email && (
-                <p className="text-sm font-semibold text-destructive flex items-center gap-2 px-1">
-                  <span className="w-2 h-2 rounded-full bg-destructive" />
+                <p className="text-xs font-semibold text-destructive ml-1 animate-slide-in-right">
                   {t(validationErrors.email)}
                 </p>
               )}
             </div>
 
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full h-14 text-lg font-black rounded-2xl bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-primary-foreground shadow-xl hover:shadow-2xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 uppercase tracking-wider"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  {t('loading')}
-                </>
-              ) : (
-                <>
-                  {t('forgotPasswordButton')}
-                  <ArrowRight className="w-5 h-5" />
-                </>
-              )}
-            </button>
+            <div className="flex flex-col gap-3">
+                {/* Submit Button */}
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full h-14 rounded-xl bg-gradient-to-r from-primary to-accent hover:to-primary text-white font-bold text-lg shadow-lg shadow-primary/25 hover:shadow-primary/40 active:scale-[0.98] transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <span>{t('loading')}</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>{t('forgotPasswordButton')}</span>
+                      <ArrowRight className="w-5 h-5" />
+                    </>
+                  )}
+                </button>
 
-            {/* Back Button */}
-            <button
-              type="button"
-              onClick={onBackClick}
-              disabled={isLoading}
-              className="w-full h-12 text-base font-bold rounded-2xl border-2 border-border hover:border-primary hover:bg-primary/5 transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-2 uppercase tracking-wider"
-            >
-              <ArrowLeft className="w-5 h-5" />
-              {t('backToLogin')}
-            </button>
+                {/* Back Button */}
+                <button
+                  type="button"
+                  onClick={onBackClick}
+                  disabled={isLoading}
+                  className="w-full h-12 rounded-xl border-2 border-transparent hover:border-border/50 hover:bg-white/5 text-muted-foreground hover:text-foreground font-semibold transition-all duration-300 active:scale-[0.98] flex items-center justify-center gap-2"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  {t('backToLogin')}
+                </button>
+            </div>
           </form>
         ) : (
-          <form onSubmit={handleResetSubmit} className="space-y-5">
+          <form onSubmit={handleResetSubmit} className="space-y-6">
             {/* Verification Code Field */}
-            <div className="space-y-3">
-              <label className="text-sm font-bold uppercase tracking-wider block px-1">{t('verificationCode')}</label>
+            <div className="space-y-1.5 group">
+              <label className="text-sm font-semibold text-foreground/80 ml-1 group-focus-within:text-primary transition-colors">
+                  {t('verificationCode')}
+              </label>
               <Input
                 type="text"
                 placeholder={t('verificationCodePlaceholder')}
@@ -227,101 +219,98 @@ export function ForgotPasswordPage({ onSuccess, onBackClick }: ForgotPasswordPag
                 onChange={handleCodeChange}
                 disabled={isLoading}
                 maxLength={6}
-                className={`h-14 text-3xl font-black text-center tracking-widest rounded-2xl border-2 transition-all duration-200 ${
-                  validationErrors.code
-                    ? 'border-destructive bg-destructive/5'
-                    : 'border-border hover:border-primary focus:border-primary'
+                className={`h-14 text-2xl font-bold text-center tracking-widest rounded-xl border-border/50 bg-background/50 backdrop-blur-sm focus:bg-background transition-all duration-300 shadow-sm hover:shadow-md focus:shadow-lg focus:ring-2 focus:ring-primary/20 ${
+                  validationErrors.code ? 'border-destructive focus:ring-destructive/20' : ''
                 }`}
               />
               {validationErrors.code && (
-                <p className="text-sm font-semibold text-destructive flex items-center gap-2 px-1">
-                  <span className="w-2 h-2 rounded-full bg-destructive" />
+                <p className="text-xs font-semibold text-destructive ml-1 animate-slide-in-right">
                   {t(validationErrors.code)}
                 </p>
               )}
             </div>
 
             {/* New Password Field */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 px-1">
-                <Lock className="w-5 h-5 text-primary" />
-                <label className="text-sm font-bold uppercase tracking-wider">{t('newPassword')}</label>
+            <div className="space-y-1.5 group">
+              <label className="text-sm font-semibold text-foreground/80 ml-1 group-focus-within:text-primary transition-colors">
+                {t('newPassword')}
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                <Input
+                  type="password"
+                  placeholder={t('newPasswordPlaceholder')}
+                  value={newPassword}
+                  onChange={(e) => handleInputChange(e, 'newPassword')}
+                  disabled={isLoading}
+                  className={`pl-12 h-12 rounded-xl border-border/50 bg-background/50 backdrop-blur-sm focus:bg-background transition-all duration-300 shadow-sm hover:shadow-md focus:shadow-lg focus:ring-2 focus:ring-primary/20 ${
+                    validationErrors.newPassword ? 'border-destructive focus:ring-destructive/20' : ''
+                  }`}
+                />
               </div>
-              <Input
-                type="password"
-                placeholder={t('newPasswordPlaceholder')}
-                value={newPassword}
-                onChange={(e) => handleInputChange(e, 'newPassword')}
-                disabled={isLoading}
-                className={`h-14 text-base rounded-2xl px-5 border-2 font-medium transition-all duration-200 ${
-                  validationErrors.newPassword
-                    ? 'border-destructive bg-destructive/5'
-                    : 'border-border hover:border-primary focus:border-primary'
-                }`}
-              />
               {validationErrors.newPassword && (
-                <p className="text-sm font-semibold text-destructive flex items-center gap-2 px-1">
-                  <span className="w-2 h-2 rounded-full bg-destructive" />
+                <p className="text-xs font-semibold text-destructive ml-1 animate-slide-in-right">
                   {t(validationErrors.newPassword)}
                 </p>
               )}
             </div>
 
             {/* Confirm Password Field */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 px-1">
-                <Lock className="w-5 h-5 text-primary" />
-                <label className="text-sm font-bold uppercase tracking-wider">{t('confirmPassword')}</label>
-              </div>
-              <Input
-                type="password"
-                placeholder={t('confirmPasswordPlaceholder')}
-                value={confirmPassword}
-                onChange={(e) => handleInputChange(e, 'confirmPassword')}
-                disabled={isLoading}
-                className={`h-14 text-base rounded-2xl px-5 border-2 font-medium transition-all duration-200 ${
-                  validationErrors.confirmPassword
-                    ? 'border-destructive bg-destructive/5'
-                    : 'border-border hover:border-primary focus:border-primary'
-                }`}
-              />
-              {validationErrors.confirmPassword && (
-                <p className="text-sm font-semibold text-destructive flex items-center gap-2 px-1">
-                  <span className="w-2 h-2 rounded-full bg-destructive" />
-                  {t(validationErrors.confirmPassword)}
-                </p>
-              )}
+            <div className="space-y-1.5 group">
+                <label className="text-sm font-semibold text-foreground/80 ml-1 group-focus-within:text-primary transition-colors">
+                  {t('confirmPassword')}
+                </label>
+                <div className="relative">
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+                  <Input
+                    type="password"
+                    placeholder={t('confirmPasswordPlaceholder')}
+                    value={confirmPassword}
+                    onChange={(e) => handleInputChange(e, 'confirmPassword')}
+                    disabled={isLoading}
+                    className={`pl-12 h-12 rounded-xl border-border/50 bg-background/50 backdrop-blur-sm focus:bg-background transition-all duration-300 shadow-sm hover:shadow-md focus:shadow-lg focus:ring-2 focus:ring-primary/20 ${
+                      validationErrors.confirmPassword ? 'border-destructive focus:ring-destructive/20' : ''
+                    }`}
+                  />
+                </div>
+                {validationErrors.confirmPassword && (
+                    <p className="text-xs font-semibold text-destructive ml-1 animate-slide-in-right">
+                    {t(validationErrors.confirmPassword)}
+                    </p>
+                )}
             </div>
 
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full h-14 mt-2 text-lg font-black rounded-2xl bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-primary-foreground shadow-xl hover:shadow-2xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 uppercase tracking-wider"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  {t('loading')}
-                </>
-              ) : (
-                <>
-                  {t('resetPasswordButton')}
-                  <ArrowRight className="w-5 h-5" />
-                </>
-              )}
-            </button>
+            <div className="flex flex-col gap-3">
+                {/* Submit Button */}
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full h-14 rounded-xl bg-gradient-to-r from-primary to-accent hover:to-primary text-white font-bold text-lg shadow-lg shadow-primary/25 hover:shadow-primary/40 active:scale-[0.98] transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <span>{t('loading')}</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>{t('resetPasswordButton')}</span>
+                      <ArrowRight className="w-5 h-5" />
+                    </>
+                  )}
+                </button>
 
-            {/* Back Button */}
-            <button
-              type="button"
-              onClick={onBackClick}
-              disabled={isLoading}
-              className="w-full h-12 text-base font-bold rounded-2xl border-2 border-border hover:border-primary hover:bg-primary/5 transition-all duration-300 disabled:opacity-50 flex items-center justify-center gap-2 uppercase tracking-wider"
-            >
-              <ArrowLeft className="w-5 h-5" />
-              {t('backToLogin')}
-            </button>
+                 {/* Back Button */}
+                 <button
+                  type="button"
+                  onClick={onBackClick}
+                  disabled={isLoading}
+                  className="w-full h-12 rounded-xl border-2 border-transparent hover:border-border/50 hover:bg-white/5 text-muted-foreground hover:text-foreground font-semibold transition-all duration-300 active:scale-[0.98] flex items-center justify-center gap-2"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  {t('backToLogin')}
+                </button>
+            </div>
           </form>
         )}
       </div>

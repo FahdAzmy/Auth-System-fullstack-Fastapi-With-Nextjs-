@@ -36,11 +36,23 @@ axiosInstance.interceptors.response.use(
       const detail = error.response.data.detail;
       if (Array.isArray(detail)) {
         // Handle Pydantic validation errors (array of objects)
-        message = detail.map((err: any) => err.msg || 'Invalid input').join(', ');
+        message = detail.map((err: any) => {
+            const msg = err.msg || 'Invalid input';
+            if (msg.includes('String should have at least')) {
+                return 'passwordTooShort'; 
+            }
+            // Add more specific mappings here if needed
+            return msg;
+        }).join(', ');
       } else if (typeof detail === 'string') {
         message = detail;
       } else if (typeof detail === 'object') {
-          message = JSON.stringify(detail);
+          // Check for structured error from backend (AppException)
+          if (detail.code) {
+             message = detail.code;
+          } else {
+             message = JSON.stringify(detail);
+          }
       }
     } else if (error.message) {
       message = error.message;

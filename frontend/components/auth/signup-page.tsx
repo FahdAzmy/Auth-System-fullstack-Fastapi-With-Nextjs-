@@ -95,158 +95,156 @@ export function SignUpPage({ onSuccess, onLoginClick }: SignUpPageProps) {
   };
 
   return (
-    <div className={`min-h-screen flex items-center justify-center p-4 ${isRTL ? 'rtl' : 'ltr'}`}>
-      {/* Animated Background Elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 right-10 w-72 h-72 bg-primary/10 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-20 left-10 w-72 h-72 bg-secondary/10 rounded-full blur-3xl animate-pulse" />
-      </div>
+    <div className={`min-h-screen flex items-center justify-center p-4 overflow-hidden relative ${isRTL ? 'rtl' : 'ltr'}`}>
+      
+      {/* Dynamic Background Orbs */}
+      <div className="absolute top-[-10%] right-[-10%] w-[45rem] h-[45rem] bg-secondary/20 rounded-full blur-3xl opacity-40 animate-pulse mix-blend-screen" />
+      <div className="absolute bottom-[-10%] left-[-10%] w-[45rem] h-[45rem] bg-primary/20 rounded-full blur-3xl opacity-40 animate-pulse delay-1000 mix-blend-screen" />
 
-      <div className="relative z-10 w-full max-w-md">
-        {/* Icon Header */}
-        <div className="mb-8 flex justify-center">
-          <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-br from-primary to-secondary rounded-full blur-2xl opacity-75 animate-pulse" />
-            <div className="relative w-20 h-20 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center shadow-2xl">
-              <User className="w-10 h-10 text-primary-foreground" />
-            </div>
+      {/* Main Glass Card */}
+      <div className="relative z-10 w-full max-w-lg glass-card rounded-3xl p-8 md:p-10 animate-fade-in-up my-4">
+        
+        {/* Header with Icon */}
+        <div className="mb-8 text-center relative">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/80 to-secondary/80 shadow-lg shadow-primary/30 mb-4 rotate-3 hover:rotate-6 transition-transform duration-300">
+            <User className="w-8 h-8 text-white drop-shadow-md" />
           </div>
-        </div>
-
-        {/* Title Section */}
-        <div className="text-center mb-8">
-          <h1 className="text-5xl font-black tracking-tighter mb-3">{t('signUpTitle')}</h1>
-          <p className="text-lg text-muted-foreground font-medium">{t('signUpDescription')}</p>
+          <h1 className="text-3xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary via-purple-500 to-secondary mb-2">
+            {t('signUpTitle')}
+          </h1>
+          <p className="text-muted-foreground font-medium text-base">
+            {t('signUpDescription')}
+          </p>
         </div>
 
         {/* Success/Error Message */}
         {(error || successMessage) && (
           <div
-            className={`mb-6 p-4 rounded-2xl font-semibold backdrop-blur-sm border-2 transition-all duration-300 ${
+            className={`mb-6 p-4 rounded-xl border font-semibold backdrop-blur-md flex items-center gap-3 animate-shake ${
               successMessage
-                ? 'bg-green-50/80 dark:bg-green-950/30 text-green-900 dark:text-green-200 border-green-300 dark:border-green-700'
-                : 'bg-destructive/10 text-destructive border-destructive/20'
+                ? 'bg-green-500/10 border-green-500/20 text-green-600 dark:text-green-400'
+                : 'bg-destructive/10 border-destructive/20 text-destructive'
             }`}
           >
-            {successMessage || error}
+            <div className={`w-2 h-2 rounded-full animate-pulse ${successMessage ? 'bg-green-500' : 'bg-destructive'}`} />
+            {t((successMessage || error)!)}
           </div>
         )}
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-5">
+          
           {/* Full Name Field */}
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 px-1">
-              <User className="w-5 h-5 text-primary" />
-              <label className="text-sm font-bold uppercase tracking-wider">{t('fullName')}</label>
+          <div className="space-y-1.5 group">
+            <label className="text-sm font-semibold text-foreground/80 ml-1 group-focus-within:text-primary transition-colors">
+              {t('fullName')}
+            </label>
+            <div className="relative">
+              <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+              <Input
+                name="fullName"
+                type="text"
+                placeholder={t('fullNamePlaceholder')}
+                value={formData.fullName}
+                onChange={handleChange}
+                disabled={isLoading}
+                className={`pl-12 h-12 rounded-xl border-border/50 bg-background/50 backdrop-blur-sm focus:bg-background transition-all duration-300 shadow-sm hover:shadow-md focus:shadow-lg focus:ring-2 focus:ring-primary/20 ${
+                  validationErrors.fullName ? 'border-destructive focus:ring-destructive/20' : ''
+                }`}
+              />
             </div>
-            <Input
-              name="fullName"
-              type="text"
-              placeholder={t('fullNamePlaceholder')}
-              value={formData.fullName}
-              onChange={handleChange}
-              disabled={isLoading}
-              className={`h-14 text-base rounded-2xl px-5 border-2 font-medium transition-all duration-200 ${
-                validationErrors.fullName
-                  ? 'border-destructive bg-destructive/5'
-                  : 'border-border hover:border-primary focus:border-primary'
-              }`}
-            />
             {validationErrors.fullName && (
-              <p className="text-sm font-semibold text-destructive flex items-center gap-2 px-1">
-                <span className="w-2 h-2 rounded-full bg-destructive" />
+              <p className="text-xs font-semibold text-destructive ml-1 animate-slide-in-right">
                 {t(validationErrors.fullName)}
               </p>
             )}
           </div>
 
           {/* Email Field */}
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 px-1">
-              <Mail className="w-5 h-5 text-primary" />
-              <label className="text-sm font-bold uppercase tracking-wider">{t('email')}</label>
+          <div className="space-y-1.5 group">
+            <label className="text-sm font-semibold text-foreground/80 ml-1 group-focus-within:text-primary transition-colors">
+              {t('email')}
+            </label>
+            <div className="relative">
+              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+              <Input
+                name="email"
+                type="email"
+                placeholder={t('emailPlaceholder')}
+                value={formData.email}
+                onChange={handleChange}
+                disabled={isLoading}
+                className={`pl-12 h-12 rounded-xl border-border/50 bg-background/50 backdrop-blur-sm focus:bg-background transition-all duration-300 shadow-sm hover:shadow-md focus:shadow-lg focus:ring-2 focus:ring-primary/20 ${
+                  validationErrors.email ? 'border-destructive focus:ring-destructive/20' : ''
+                }`}
+              />
             </div>
-            <Input
-              name="email"
-              type="email"
-              placeholder={t('emailPlaceholder')}
-              value={formData.email}
-              onChange={handleChange}
-              disabled={isLoading}
-              className={`h-14 text-base rounded-2xl px-5 border-2 font-medium transition-all duration-200 ${
-                validationErrors.email
-                  ? 'border-destructive bg-destructive/5'
-                  : 'border-border hover:border-primary focus:border-primary'
-              }`}
-            />
             {validationErrors.email && (
-              <p className="text-sm font-semibold text-destructive flex items-center gap-2 px-1">
-                <span className="w-2 h-2 rounded-full bg-destructive" />
+              <p className="text-xs font-semibold text-destructive ml-1 animate-slide-in-right">
                 {t(validationErrors.email)}
               </p>
             )}
           </div>
 
           {/* Password Field */}
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 px-1">
-              <Lock className="w-5 h-5 text-primary" />
-              <label className="text-sm font-bold uppercase tracking-wider">{t('password')}</label>
+          <div className="space-y-1.5 group">
+            <label className="text-sm font-semibold text-foreground/80 ml-1 group-focus-within:text-primary transition-colors">
+              {t('password')}
+            </label>
+            <div className="relative">
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+              <Input
+                name="password"
+                type="password"
+                placeholder={t('passwordPlaceholder')}
+                value={formData.password}
+                onChange={handleChange}
+                disabled={isLoading}
+                className={`pl-12 h-12 rounded-xl border-border/50 bg-background/50 backdrop-blur-sm focus:bg-background transition-all duration-300 shadow-sm hover:shadow-md focus:shadow-lg focus:ring-2 focus:ring-primary/20 ${
+                  validationErrors.password ? 'border-destructive focus:ring-destructive/20' : ''
+                }`}
+              />
             </div>
-            <Input
-              name="password"
-              type="password"
-              placeholder={t('passwordPlaceholder')}
-              value={formData.password}
-              onChange={handleChange}
-              disabled={isLoading}
-              className={`h-14 text-base rounded-2xl px-5 border-2 font-medium transition-all duration-200 ${
-                validationErrors.password
-                  ? 'border-destructive bg-destructive/5'
-                  : 'border-border hover:border-primary focus:border-primary'
-              }`}
-            />
             {formData.password && !validationErrors.password && (
-              <PasswordStrengthIndicator password={formData.password} />
+              <div className="mt-2">
+                 <PasswordStrengthIndicator password={formData.password} />
+              </div>
             )}
             {validationErrors.password && (
-              <p className="text-sm font-semibold text-destructive flex items-center gap-2 px-1">
-                <span className="w-2 h-2 rounded-full bg-destructive" />
+              <p className="text-xs font-semibold text-destructive ml-1 animate-slide-in-right">
                 {t(validationErrors.password)}
               </p>
             )}
           </div>
 
           {/* Confirm Password Field */}
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 px-1">
-              <Lock className="w-5 h-5 text-primary" />
-              <label className="text-sm font-bold uppercase tracking-wider">{t('confirmPassword')}</label>
+          <div className="space-y-1.5 group">
+            <label className="text-sm font-semibold text-foreground/80 ml-1 group-focus-within:text-primary transition-colors">
+              {t('confirmPassword')}
+            </label>
+            <div className="relative">
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
+              <Input
+                name="confirmPassword"
+                type="password"
+                placeholder={t('confirmPasswordPlaceholder')}
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                disabled={isLoading}
+                className={`pl-12 h-12 rounded-xl border-border/50 bg-background/50 backdrop-blur-sm focus:bg-background transition-all duration-300 shadow-sm hover:shadow-md focus:shadow-lg focus:ring-2 focus:ring-primary/20 ${
+                  validationErrors.confirmPassword ? 'border-destructive focus:ring-destructive/20' : ''
+                }`}
+              />
             </div>
-            <Input
-              name="confirmPassword"
-              type="password"
-              placeholder={t('confirmPasswordPlaceholder')}
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              disabled={isLoading}
-              className={`h-14 text-base rounded-2xl px-5 border-2 font-medium transition-all duration-200 ${
-                validationErrors.confirmPassword
-                  ? 'border-destructive bg-destructive/5'
-                  : 'border-border hover:border-primary focus:border-primary'
-              }`}
-            />
             {validationErrors.confirmPassword && (
-              <p className="text-sm font-semibold text-destructive flex items-center gap-2 px-1">
-                <span className="w-2 h-2 rounded-full bg-destructive" />
+              <p className="text-xs font-semibold text-destructive ml-1 animate-slide-in-right">
                 {t(validationErrors.confirmPassword)}
               </p>
             )}
           </div>
 
           {/* Terms Checkbox */}
-          <div className="flex items-start gap-3 p-3 rounded-xl bg-muted/50">
+          <div className={`flex items-start gap-3 p-4 rounded-xl transition-colors ${validationErrors.terms ? 'bg-destructive/5 border border-destructive/20' : 'bg-muted/30 border border-transparent'}`}>
             <Checkbox
               id="terms"
               checked={agreeToTerms}
@@ -259,14 +257,14 @@ export function SignUpPage({ onSuccess, onLoginClick }: SignUpPageProps) {
                 }
               }}
               disabled={isLoading}
+              className="mt-1 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
             />
-            <label htmlFor="terms" className="text-sm font-medium leading-relaxed cursor-pointer">
-              {t('agreeTerms')} <span className="text-primary font-bold">{t('termsLink')}</span>
+            <label htmlFor="terms" className="text-sm font-medium leading-relaxed cursor-pointer text-muted-foreground select-none">
+              {t('agreeTerms')} <span className="text-primary font-bold hover:underline underline-offset-4">{t('termsLink')}</span>
             </label>
           </div>
           {validationErrors.terms && (
-            <p className="text-sm font-semibold text-destructive flex items-center gap-2 px-1">
-              <span className="w-2 h-2 rounded-full bg-destructive" />
+            <p className="text-xs font-semibold text-destructive ml-1 animate-slide-in-right">
               {t(validationErrors.terms)}
             </p>
           )}
@@ -275,7 +273,7 @@ export function SignUpPage({ onSuccess, onLoginClick }: SignUpPageProps) {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full h-14 mt-2 text-lg font-black rounded-2xl bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-primary-foreground shadow-xl hover:shadow-2xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 uppercase tracking-wider"
+            className="w-full h-14 mt-4 rounded-xl bg-gradient-to-r from-primary to-secondary hover:to-primary text-white font-bold text-lg shadow-lg shadow-primary/25 hover:shadow-primary/40 active:scale-[0.98] transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2 group"
           >
             {isLoading ? (
               <>
@@ -284,8 +282,8 @@ export function SignUpPage({ onSuccess, onLoginClick }: SignUpPageProps) {
               </>
             ) : (
               <>
-                <span>{t('signUp')}</span>
-                <ArrowRight className="w-5 h-5" />
+                <span>{t('signUpButton')}</span>
+                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform rtl:group-hover:-translate-x-1" />
               </>
             )}
           </button>
@@ -297,9 +295,9 @@ export function SignUpPage({ onSuccess, onLoginClick }: SignUpPageProps) {
             {t('haveAccount')}{' '}
             <button
               onClick={onLoginClick}
-              className="font-black text-primary hover:text-primary/80 transition-colors"
+              className="font-bold text-primary hover:text-secondary transition-colors relative after:content-[''] after:absolute after:w-full after:scale-x-0 after:h-0.5 after:bottom-0 after:left-0 after:bg-primary after:origin-bottom-right after:transition-transform after:duration-300 hover:after:scale-x-100 hover:after:origin-bottom-left"
             >
-              {t('logIn')}
+              {t('loginLink')}
             </button>
           </p>
         </div>

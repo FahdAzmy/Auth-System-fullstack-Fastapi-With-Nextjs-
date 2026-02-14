@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Mail } from 'lucide-react';
 
 interface VerifyEmailPageProps {
   onSuccess?: () => void;
@@ -38,8 +38,8 @@ export function VerifyEmailPage({ onSuccess, onBackClick }: VerifyEmailPageProps
 
   // Handle success navigation
   useEffect(() => {
-    if (successMessage && !successMessage.includes('sent') && onSuccess) {
-       // Assuming 'sent' implies resend code success, else verify success
+    if (successMessage === 'EMAIL_VERIFIED' && onSuccess) {
+       // Only navigate if email was truly verified, not just code resent
        const timer = setTimeout(() => {
          dispatch(clearPendingEmail());
          onSuccess();
@@ -96,88 +96,111 @@ export function VerifyEmailPage({ onSuccess, onBackClick }: VerifyEmailPageProps
   };
 
   return (
-    <div className={`min-h-screen flex items-center justify-center p-4 ${isRTL ? 'rtl' : 'ltr'}`}>
-      <Card className="w-full max-w-md shadow-xl border-border/50 backdrop-blur-sm bg-card/95">
-        <CardHeader className="text-center pb-6">
-          <div className="flex justify-center mb-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-primary to-primary/70 rounded-lg flex items-center justify-center">
-              <svg className="w-6 h-6 text-primary-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
-            </div>
-          </div>
-          <CardTitle className="text-2xl font-bold">{t('verifyEmailTitle')}</CardTitle>
-          <CardDescription className="text-base mt-2">{t('verifyEmailDescription')}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {(error || successMessage) && (
-              <div
-                className={`p-3 rounded-md text-sm ${
-                  successMessage
-                    ? 'bg-green-50 text-green-800 dark:bg-green-900/20 dark:text-green-300'
-                    : 'bg-red-50 text-red-800 dark:bg-red-900/20 dark:text-red-300'
-                }`}
-              >
-                {successMessage || error}
-              </div>
-            )}
+    <div className={`min-h-screen flex items-center justify-center p-4 overflow-hidden relative ${isRTL ? 'rtl' : 'ltr'}`}>
+      
+      {/* Dynamic Background Orbs */}
+      <div className="absolute top-[20%] left-[20%] w-[30rem] h-[30rem] bg-primary/20 rounded-full blur-3xl opacity-40 animate-pulse mix-blend-screen" />
+      <div className="absolute bottom-[20%] right-[20%] w-[30rem] h-[30rem] bg-accent/20 rounded-full blur-3xl opacity-40 animate-pulse delay-700 mix-blend-screen" />
 
-            <div className="space-y-2">
-              <Label htmlFor="code">{t('verificationCode')}</Label>
+      {/* Main Glass Card */}
+      <div className="relative z-10 w-full max-w-md glass-card rounded-3xl p-8 md:p-10 animate-fade-in-up">
+        
+        {/* Header with Icon */}
+        <div className="mb-8 text-center">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/80 to-accent/80 shadow-lg shadow-primary/30 mb-6 rotate-3 hover:rotate-6 transition-transform duration-300">
+            <Mail className="w-8 h-8 text-white drop-shadow-md" />
+          </div>
+          <h1 className="text-3xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary via-purple-500 to-accent mb-2">
+            {t('verifyEmailTitle')}
+          </h1>
+          <p className="text-muted-foreground font-medium text-lg">
+            {t('verifyEmailDescription')}
+          </p>
+        </div>
+
+        {/* Success/Error Message */}
+        {(error || successMessage) && (
+          <div
+            className={`mb-6 p-4 rounded-xl border font-semibold backdrop-blur-md flex items-center gap-3 animate-shake ${
+              successMessage
+                ? 'bg-green-500/10 border-green-500/20 text-green-600 dark:text-green-400'
+                : 'bg-destructive/10 border-destructive/20 text-destructive'
+            }`}
+          >
+            <div className={`w-2 h-2 rounded-full animate-pulse ${successMessage ? 'bg-green-500' : 'bg-destructive'}`} />
+            {t((successMessage || error)!)}
+          </div>
+        )}
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="space-y-6">
+          
+          <div className="space-y-4">
+            <div className="relative group">
               <Input
                 id="code"
                 type="text"
-                placeholder={t('verificationCodePlaceholder')}
+                placeholder="000000"
                 value={code}
                 onChange={handleCodeChange}
                 disabled={isLoading}
                 maxLength={6}
-                className={`text-center text-2xl tracking-widest font-mono ${
-                  validationErrors.code ? 'border-red-500' : ''
+                className={`h-16 text-center text-3xl tracking-[1em] font-mono rounded-xl border-border/50 bg-background/50 backdrop-blur-sm focus:bg-background transition-all duration-300 shadow-inner hover:shadow-md focus:shadow-lg focus:ring-2 focus:ring-primary/20 ${
+                  validationErrors.code ? 'border-destructive focus:ring-destructive/20' : ''
                 }`}
               />
-              {validationErrors.code && (
-                <p className="text-sm text-red-500">{t(validationErrors.code)}</p>
-              )}
+              {/* Optional: Add decorative dashes between numbers if we wanted a more complex component, but simple is good for now */}
             </div>
+            {validationErrors.code && (
+              <p className="text-sm font-bold text-destructive text-center animate-slide-in-right">
+                {t(validationErrors.code)}
+              </p>
+            )}
+          </div>
 
-            <div className="text-center text-sm text-muted-foreground">
-              {!canResend ? (
-                <p>{t('codeExpires')}: {timeLeft}s</p>
-              ) : (
-                <p>{t('verifyEmailDescription')}</p>
-              )}
-            </div>
-
-            <Button type="submit" className="w-full" disabled={isLoading || code.length !== 6}>
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isLoading ? t('loading') : t('verifyButton')}
-            </Button>
-
-            <div className="flex gap-2">
-              <Button
+          <div className="text-center">
+             <button
                 type="button"
-                variant="outline"
-                className="flex-1 bg-transparent"
-                onClick={onBackClick}
-                disabled={isLoading}
-              >
-                {t('backToLogin')}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="flex-1 bg-transparent"
                 onClick={handleResendCode}
                 disabled={!canResend || isLoading}
+                className={`text-sm font-bold transition-colors ${
+                    canResend 
+                    ? 'text-primary hover:text-accent hover:underline underline-offset-4 cursor-pointer' 
+                    : 'text-muted-foreground cursor-not-allowed'
+                }`}
               >
                 {t('resendCode')}
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+                {!canResend && <span className="ml-1 opacity-70">({timeLeft}s)</span>}
+              </button>
+          </div>
+
+          <div className="flex flex-col gap-3">
+            <button
+              type="submit"
+              disabled={isLoading || code.length !== 6}
+              className="w-full h-14 rounded-xl bg-gradient-to-r from-primary to-accent hover:to-primary text-white font-bold text-lg shadow-lg shadow-primary/25 hover:shadow-primary/40 active:scale-[0.98] transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <span>{t('loading')}</span>
+                </>
+              ) : (
+                <span>{t('verifyButton')}</span>
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={onBackClick}
+              disabled={isLoading}
+              className="w-full h-12 rounded-xl border-2 border-transparent hover:border-border/50 hover:bg-white/5 text-muted-foreground hover:text-foreground font-semibold transition-all duration-300 active:scale-[0.98]"
+            >
+              {t('backToLogin')}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
