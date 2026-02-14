@@ -6,6 +6,7 @@ import {
   logout,
   forgotPassword,
   resetPassword,
+  resendCode,
 } from './auth-actions';
 
 // Types
@@ -84,7 +85,7 @@ const authSlice = createSlice({
       })
       .addCase(signup.fulfilled, (state) => {
         state.isLoading = false;
-        state.successMessage = 'Account created! Please check your email for the verification code.';
+        state.successMessage = 'signUpSuccess';
       })
       .addCase(signup.rejected, (state, action) => {
         state.isLoading = false;
@@ -97,9 +98,9 @@ const authSlice = createSlice({
         state.isLoading = true;
         state.error = null;
       })
-      .addCase(verifyEmail.fulfilled, (state) => {
+      .addCase(verifyEmail.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.successMessage = 'Email verified successfully! You can now login.';
+        state.successMessage = action.payload.message || 'emailVerificationSuccess';
       })
       .addCase(verifyEmail.rejected, (state, action) => {
         state.isLoading = false;
@@ -119,9 +120,9 @@ const authSlice = createSlice({
         state.isLoading = true;
         state.error = null;
       })
-      .addCase(forgotPassword.fulfilled, (state) => {
+      .addCase(forgotPassword.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.successMessage = 'Reset code sent to your email.';
+        state.successMessage = action.payload.message || 'PASSWORD_RESET_CODE_SENT';
       })
       .addCase(forgotPassword.rejected, (state, action) => {
         state.isLoading = false;
@@ -134,14 +135,29 @@ const authSlice = createSlice({
         state.isLoading = true;
         state.error = null;
       })
-      .addCase(resetPassword.fulfilled, (state) => {
+      .addCase(resetPassword.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.successMessage = 'Password reset successfully! Please login with your new password.';
+        state.successMessage = action.payload.message || 'PASSWORD_RESET_SUCCESS';
       })
       .addCase(resetPassword.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload as string;
-      });
+      })
+      
+    // Resend Code
+    builder
+    .addCase(resendCode.pending, (state) => {
+      state.isLoading = true;
+      state.error = null;
+    })
+    .addCase(resendCode.fulfilled, (state, action) => {
+      state.isLoading = false;
+      state.successMessage = action.payload.message || 'VERIFICATION_CODE_RESENT';
+    })
+    .addCase(resendCode.rejected, (state, action) => {
+      state.isLoading = false;
+      state.error = action.payload as string;
+    });
   },
 });
 

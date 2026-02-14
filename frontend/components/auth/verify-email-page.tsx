@@ -39,8 +39,8 @@ export function VerifyEmailPage({ onSuccess, onBackClick }: VerifyEmailPageProps
 
   // Handle success navigation
   useEffect(() => {
-    if (successMessage && !successMessage.includes('sent') && onSuccess) {
-       // Assuming 'sent' implies resend code success, else verify success
+    if (successMessage === 'EMAIL_VERIFIED' && onSuccess) {
+       // Only navigate if email was truly verified, not just code resent
        const timer = setTimeout(() => {
          dispatch(clearPendingEmail());
          onSuccess();
@@ -120,7 +120,7 @@ export function VerifyEmailPage({ onSuccess, onBackClick }: VerifyEmailPageProps
                     : 'bg-red-50 text-red-800 dark:bg-red-900/20 dark:text-red-300'
                 }`}
               >
-                {successMessage || error}
+                {t((successMessage || error)!)}
               </div>
             )}
 

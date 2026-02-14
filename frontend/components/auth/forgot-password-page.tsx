@@ -46,10 +46,10 @@ export function ForgotPasswordPage({ onSuccess, onBackClick }: ForgotPasswordPag
   // Handle success navigation or step change
   useEffect(() => {
     if (successMessage) {
-        if (step === 'email' && successMessage.includes('sent')) {
+        if (step === 'email' && successMessage === 'PASSWORD_RESET_CODE_SENT') {
             setStep('reset');
             dispatch(clearSuccess()); // Clear so it doesn't trigger again immediately or confuse next step
-        } else if (step === 'reset' && !successMessage.includes('sent') && onSuccess) {
+        } else if (step === 'reset' && successMessage === 'PASSWORD_RESET_SUCCESS' && onSuccess) {
              const timer = setTimeout(() => {
                onSuccess();
              }, 1500);
@@ -153,7 +153,7 @@ export function ForgotPasswordPage({ onSuccess, onBackClick }: ForgotPasswordPag
                 : 'bg-destructive/10 text-destructive border-destructive/20'
             }`}
           >
-            {successMessage || error}
+            {t((successMessage || error)!)}
           </div>
         )}
 

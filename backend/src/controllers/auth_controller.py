@@ -7,6 +7,9 @@ from fastapi import HTTPException, status, BackgroundTasks, Response, Cookie
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from src.helpers.config import settings
+from src.helpers.errorHandler import AppException
+from src.helpers.errorCodes import ErrorCode
+from src.helpers.successMessages import SuccessMessage
 
 
 from src.models.db_scheams.user import User
@@ -54,8 +57,8 @@ async def signup(
     existing_user = result.scalar_one_or_none()
 
     if existing_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered"
+        raise AppException(
+            status_code=status.HTTP_400_BAD_REQUEST, code=ErrorCode.EMAIL_ALREADY_EXISTS
         )
 
     # Create new user with verification code
@@ -111,19 +114,21 @@ async def verify_email(verify_data: VerifyCodeRequest, db: AsyncSession) -> dict
     user = result.scalar_one_or_none()
 
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        raise AppException(
+            status_code=status.HTTP_404_NOT_FOUND, code=ErrorCode.USER_NOT_FOUND
         )
 
     if user.is_verified:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Email already verified"
+        raise AppException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            code=ErrorCode.EMAIL_ALREADY_VERIFIED,
         )
 
     # Check verification code
     if user.verification_token != verify_data.code:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid verification code"
+        raise AppException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            code=ErrorCode.INVALID_VERIFICATION_CODE,
         )
 
     # Verify user
@@ -133,7 +138,7 @@ async def verify_email(verify_data: VerifyCodeRequest, db: AsyncSession) -> dict
 
     await db.commit()
 
-    return {"message": "Email verified successfully"}
+    return {"message": SuccessMessage.EMAIL_VERIFIED}
 
 
 async def resend_verification_code(
@@ -158,13 +163,14 @@ async def resend_verification_code(
     user = result.scalar_one_or_none()
 
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        raise AppException(
+            status_code=status.HTTP_404_NOT_FOUND, code=ErrorCode.USER_NOT_FOUND
         )
 
     if user.is_verified:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Email already verified"
+        raise AppException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            code=ErrorCode.EMAIL_ALREADY_VERIFIED,
         )
 
     # Generate new verification code
@@ -182,7 +188,7 @@ async def resend_verification_code(
         name=user.name,
     )
 
-    return {"message": "Verification code resent successfully"}
+    return {"message": SuccessMessage.VERIFICATION_CODE_RESENT}
 
 
 async def login(
@@ -205,7 +211,9 @@ async def login(
     result = await db.execute(select(User).where(User.email == login_data.email))
     user = result.scalar_one_or_none()
     if not user or not verify_password(login_data.password, user.hashed_password):
-        raise HTTPException(status_code=401, detail="Invalid email or password")
+        raise AppException(
+            status_code=status.HTTP_401_UNAUTHORIZED, code=ErrorCode.INVALID_CREDENTIALS
+        )
     # Generate access token
     access_token = generate_access_token(user.id)
     refresh_token = generate_refresh_token(user.id)
@@ -243,7 +251,10 @@ async def refresh_access_token(
         HTTPException: If refresh token is invalid or expired
     """
     if not refresh_token:
-        raise HTTPException(status_code=401, detail="Refresh token not found")
+        raise AppException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            code=ErrorCode.REFRESH_TOKEN_NOT_FOUND,
+        )
 
     # Verify refresh token
     payload = verify_refresh_token(refresh_token)
@@ -290,8 +301,8 @@ async def forgot_password(
     user = result.scalar_one_or_none()
 
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        raise AppException(
+            status_code=status.HTTP_404_NOT_FOUND, code=ErrorCode.USER_NOT_FOUND
         )
 
     # Generate reset code
@@ -309,7 +320,7 @@ async def forgot_password(
         name=user.name,
     )
 
-    return {"message": "Password reset code sent to your email"}
+    return {"message": SuccessMessage.PASSWORD_RESET_CODE_SENT}
 
 
 async def reset_password(
@@ -334,14 +345,14 @@ async def reset_password(
     user = result.scalar_one_or_none()
 
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        raise AppException(
+            status_code=status.HTTP_404_NOT_FOUND, code=ErrorCode.USER_NOT_FOUND
         )
 
     # Check reset code
     if user.verification_token is None or user.verification_token != reset_data.code:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid reset code"
+        raise AppException(
+            status_code=status.HTTP_400_BAD_REQUEST, code=ErrorCode.INVALID_RESET_CODE
         )
 
     # Hash new password and update
@@ -349,4 +360,4 @@ async def reset_password(
     user.verification_token = None  # Clear the code after use
     await db.commit()
 
-    return {"message": "Password reset successfully"}
+    return {"message": SuccessMessage.PASSWORD_RESET_SUCCESS}

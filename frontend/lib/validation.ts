@@ -30,6 +30,11 @@ export function validatePassword(password: string): string | null {
   return null;
 }
 
+export function validateLoginPassword(password: string): string | null {
+  if (!password) return 'passwordRequired';
+  return null;
+}
+
 export function validateFullName(name: string): string | null {
   if (!name || name.trim() === '') return 'nameRequired';
   

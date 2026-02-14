@@ -128,7 +128,7 @@ export function SignUpPage({ onSuccess, onLoginClick }: SignUpPageProps) {
                 : 'bg-destructive/10 text-destructive border-destructive/20'
             }`}
           >
-            {successMessage || error}
+            {t((successMessage || error)!)}
           </div>
         )}
 

@@ -6,7 +6,7 @@ import { AppDispatch, RootState } from '@/store/store';
 import { login } from '@/store/auth/auth-actions';
 import { clearError } from '@/store/auth/auth-slice';
 import { useLanguage } from '@/lib/language-context';
-import { validateEmail, validatePassword, type ValidationErrors } from '@/lib/validation';
+import { validateEmail, validateLoginPassword, type ValidationErrors } from '@/lib/validation';
 import { Input } from '@/components/ui/input';
 import { Loader2, ArrowRight, Mail, Lock } from 'lucide-react';
 
@@ -53,7 +53,7 @@ export function LoginPage({
     const emailError = validateEmail(formData.email);
     if (emailError) newErrors.email = emailError;
 
-    const passwordError = validatePassword(formData.password);
+    const passwordError = validateLoginPassword(formData.password);
     if (passwordError) newErrors.password = passwordError;
 
     setValidationErrors(newErrors);
@@ -95,7 +95,7 @@ export function LoginPage({
         {/* Error Message */}
         {error && (
           <div className="mb-6 p-4 rounded-2xl font-bold border-2 animate-reveal transition-all duration-300 bg-destructive/10 text-destructive border-destructive/20">
-            {error}
+            {t(error!)}
           </div>
         )}
 
