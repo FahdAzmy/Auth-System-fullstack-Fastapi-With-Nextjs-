@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useLanguage } from '@/lib/language-context';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { ThemeSwitcher } from '@/components/theme-switcher';
@@ -15,16 +15,6 @@ export function AuthManager() {
   const [currentPage, setCurrentPage] = useState<AuthPage>('login');
   const [pendingEmail, setPendingEmail] = useState<string>('');
   const { isRTL } = useLanguage();
-
-  useEffect(() => {
-    if (isRTL) {
-      document.documentElement.dir = 'rtl';
-      document.documentElement.lang = 'ar';
-    } else {
-      document.documentElement.dir = 'ltr';
-      document.documentElement.lang = 'en';
-    }
-  }, [isRTL]);
 
   const renderPage = () => {
     switch (currentPage) {
@@ -62,7 +52,7 @@ export function AuthManager() {
   };
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br from-background via-background to-muted/30 relative overflow-hidden transition-all duration-300 ${isRTL ? 'rtl' : 'ltr'}`}>
+    <div className={`min-h-screen bg-gradient-to-br from-background via-background to-muted/30 relative overflow-hidden transition-all duration-300`}>
       {/* Background decoration */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className={`absolute top-0 ${isRTL ? 'right-1/4' : 'left-1/4'} w-96 h-96 bg-primary/5 rounded-full blur-3xl`} />

@@ -5,6 +5,7 @@ import './globals.css'
 import { LanguageProvider } from '@/lib/language-context'
 import { ThemeProvider } from '@/lib/theme-context'
 import { Providers } from '@/components/providers'
+import { MainLayout } from '@/components/main-layout'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -37,7 +38,9 @@ export default function RootLayout({
         <Providers>
           <ThemeProvider>
             <LanguageProvider>
-              {children}
+              <MainLayout>
+                {children}
+              </MainLayout>
             </LanguageProvider>
           </ThemeProvider>
         </Providers>

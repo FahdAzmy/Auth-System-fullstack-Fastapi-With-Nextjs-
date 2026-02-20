@@ -226,3 +226,91 @@
     @apply flex-1 h-px bg-border;
   }
 }
+
+/* ─── Chat Page Styles ─────────────────────────────────────── */
+
+/* Custom scrollbar for chat areas */
+.chat-scrollbar::-webkit-scrollbar {
+  width: 5px;
+}
+
+.chat-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.chat-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #e5e7eb;
+  border-radius: 10px;
+}
+
+.dark .chat-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #374151;
+}
+
+.chat-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: #d1d5db;
+}
+
+.dark .chat-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: #4b5563;
+}
+
+/* Chat page specific */
+.chat-page {
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+/* Chat header */
+.chat-header {
+  backdrop-filter: blur(8px);
+}
+
+/* Chat sidebar */
+.chat-sidebar {
+  scrollbar-width: thin;
+  scrollbar-color: #e5e7eb transparent;
+}
+
+/* Smooth message entry */
+@keyframes messageSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.chat-message-enter {
+  animation: messageSlideIn 0.3s ease-out;
+}
+
+/* Pulse for typing indicator dots */
+@keyframes typingPulse {
+  0%, 60%, 100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  30% {
+    transform: translateY(-6px);
+    opacity: 1;
+  }
+}
+
+/* Teal gradient for user messages */
+.teal-gradient {
+  background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%);
+}
+
+/* Hover state for teal gradient */
+.teal-gradient:hover {
+  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
+}
+
+/* Focus ring teal style for chat input */
+.chat-input-focus:focus-within {
+  border-color: #0d9488;
+  box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.15);
+}
