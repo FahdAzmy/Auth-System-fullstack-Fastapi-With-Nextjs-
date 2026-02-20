@@ -1,15 +1,13 @@
 'use client';
 
-
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '@/store/store';
 import { forgotPassword, resetPassword } from '@/store/auth/auth-actions';
 import { clearError, clearSuccess } from '@/store/auth/auth-slice';
 import { useLanguage } from '@/lib/language-context';
 import { validateEmail, validatePassword, validateVerificationCode, validatePasswordMatch, type ValidationErrors } from '@/lib/validation';
-import { Input } from '@/components/ui/input';
-import { Loader2, ArrowRight, Mail, Lock, ArrowLeft } from 'lucide-react';
+import { Loader2, ArrowRight, Mail, Lock, ArrowLeft, Stethoscope, ShieldCheck, Clock, Zap, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 interface ForgotPasswordPageProps {
   onSuccess?: () => void;
@@ -28,7 +26,6 @@ export function ForgotPasswordPage({ onSuccess, onBackClick }: ForgotPasswordPag
   const [confirmPassword, setConfirmPassword] = useState('');
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
 
-  // Clear state on unmount
   useEffect(() => {
     dispatch(clearSuccess());
     return () => {
@@ -37,18 +34,15 @@ export function ForgotPasswordPage({ onSuccess, onBackClick }: ForgotPasswordPag
     };
   }, [dispatch]);
 
-  // Handle success navigation or step change
   useEffect(() => {
     if (successMessage) {
-        if (step === 'email' && successMessage === 'PASSWORD_RESET_CODE_SENT') {
-            setStep('reset');
-            dispatch(clearSuccess()); // Clear so it doesn't trigger again immediately or confuse next step
-        } else if (step === 'reset' && successMessage === 'PASSWORD_RESET_SUCCESS' && onSuccess) {
-             const timer = setTimeout(() => {
-               onSuccess();
-             }, 1500);
-             return () => clearTimeout(timer);
-        }
+      if (step === 'email' && successMessage === 'PASSWORD_RESET_CODE_SENT') {
+        setStep('reset');
+        dispatch(clearSuccess());
+      } else if (step === 'reset' && successMessage === 'PASSWORD_RESET_SUCCESS' && onSuccess) {
+        const timer = setTimeout(() => { onSuccess(); }, 1500);
+        return () => clearTimeout(timer);
+      }
     }
   }, [successMessage, step, onSuccess, dispatch]);
 
@@ -72,13 +66,13 @@ export function ForgotPasswordPage({ onSuccess, onBackClick }: ForgotPasswordPag
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleEmailSubmit = async (e: React.FormEvent) => {
+  const handleEmailSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateEmailStep()) return;
     dispatch(forgotPassword(email));
   };
 
-  const handleResetSubmit = async (e: React.FormEvent) => {
+  const handleResetSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateResetStep()) return;
     dispatch(resetPassword({ email, code, new_password: newPassword }));
@@ -100,7 +94,6 @@ export function ForgotPasswordPage({ onSuccess, onBackClick }: ForgotPasswordPag
     if (field === 'email') setEmail(value);
     else if (field === 'newPassword') setNewPassword(value);
     else if (field === 'confirmPassword') setConfirmPassword(value);
-
     if (validationErrors[field]) {
       const newErrors = { ...validationErrors };
       delete newErrors[field];
@@ -109,210 +102,199 @@ export function ForgotPasswordPage({ onSuccess, onBackClick }: ForgotPasswordPag
     if (error) dispatch(clearError());
   };
 
-  return (
-    <div className={`min-h-screen flex items-center justify-center p-4 overflow-hidden relative ${isRTL ? 'rtl' : 'ltr'}`}>
-      
-      {/* Dynamic Background Orbs */}
-      <div className="absolute top-[-10%] left-[20%] w-[40rem] h-[40rem] bg-accent/20 rounded-full blur-3xl opacity-40 animate-pulse mix-blend-screen" />
-      <div className="absolute bottom-[-10%] right-[10%] w-[40rem] h-[40rem] bg-primary/20 rounded-full blur-3xl opacity-40 animate-pulse delay-500 mix-blend-screen" />
-
-      {/* Main Glass Card */}
-      <div className="relative z-10 w-full max-w-md glass-card rounded-3xl p-8 md:p-10 animate-fade-in-up">
-        
-        {/* Header with Icon */}
-        <div className="mb-8 text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/80 to-accent/80 shadow-lg shadow-primary/30 mb-6 rotate-3 hover:rotate-6 transition-transform duration-300">
-            <Lock className="w-8 h-8 text-white drop-shadow-md" />
+  /* Shared left panel */
+  const LeftPanel = () => (
+    <div className="auth-panel-left">
+      <div className="relative z-10">
+        <div className="flex items-center gap-3 mb-16">
+          <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
+            <Stethoscope className="w-6 h-6 text-white" />
           </div>
-          <h1 className="text-3xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary via-purple-500 to-accent mb-2">
-            {step === 'email' ? t('forgotPasswordTitle') : t('resetPasswordTitle')}
-          </h1>
-          <p className="text-muted-foreground font-medium text-base">
-            {step === 'email' ? t('forgotPasswordDescription') : t('resetPasswordDescription')}
-          </p>
+          <span className="text-white font-bold text-xl tracking-tight">{t('brandName')}</span>
         </div>
 
-        {/* Success/Error Message */}
-        {(error || successMessage) && (
-          <div
-            className={`mb-6 p-4 rounded-xl border font-semibold backdrop-blur-md flex items-center gap-3 animate-shake ${
-              successMessage
-                ? 'bg-green-500/10 border-green-500/20 text-green-600 dark:text-green-400'
-                : 'bg-destructive/10 border-destructive/20 text-destructive'
-            }`}
-          >
-            <div className={`w-2 h-2 rounded-full animate-pulse ${successMessage ? 'bg-green-500' : 'bg-destructive'}`} />
-            {t((successMessage || error)!)}
+        <h1 className="text-4xl font-bold text-white leading-tight mb-4">
+          {t('loginHeadline')}
+        </h1>
+        <p className="text-teal-100 text-base leading-relaxed mb-12">
+          {t('forgotPasswordSubheadline')}
+        </p>
+
+        <div className="space-y-5">
+          {[
+            { icon: <Zap className="w-4 h-4 text-white" />, title: t('featureInstantTitle'), desc: t('featureInstantDesc') },
+            { icon: <ShieldCheck className="w-4 h-4 text-white" />, title: t('featureEvidenceTitle'), desc: t('featureEvidenceDesc') },
+            { icon: <Clock className="w-4 h-4 text-white" />, title: t('featureGuidanceTitle'), desc: t('featureGuidanceDesc') },
+          ].map((f, i) => (
+            <div key={i} className="auth-feature-item">
+              <div className="auth-feature-icon">{f.icon}</div>
+              <div>
+                <p className="text-white font-semibold text-sm">{f.title}</p>
+                <p className="text-teal-200 text-xs mt-0.5">{f.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <p className="relative z-10 text-teal-200 text-xs">
+        {t('copyright')}
+      </p>
+    </div>
+  );
+
+  return (
+    <div className={`auth-layout ${isRTL ? 'rtl' : 'ltr'}`}>
+      <LeftPanel />
+
+      {/* ── Right Form Panel ── */}
+      <div className="auth-panel-right">
+        <div className="auth-form-card">
+
+          {/* Mobile logo */}
+          <div className="flex items-center gap-2 mb-8 lg:hidden">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#0d9488,#0f766e)' }}>
+              <Stethoscope className="w-4 h-4 text-white" />
+            </div>
+            <span className="font-bold text-base text-foreground">{t('brandName')}</span>
           </div>
-        )}
 
-        {step === 'email' ? (
-          <form onSubmit={handleEmailSubmit} className="space-y-6">
-            {/* Email Field */}
-            <div className="space-y-1.5 group">
-              <label className="text-sm font-semibold text-foreground/80 ml-1 group-focus-within:text-primary transition-colors">
-                {t('email')}
-              </label>
-              <div className="relative">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                <Input
-                  type="email"
-                  placeholder={t('emailPlaceholder')}
-                  value={email}
-                  onChange={(e) => handleInputChange(e, 'email')}
-                  disabled={isLoading}
-                  className={`pl-12 h-12 rounded-xl border-border/50 bg-background/50 backdrop-blur-sm focus:bg-background transition-all duration-300 shadow-sm hover:shadow-md focus:shadow-lg focus:ring-2 focus:ring-primary/20 ${
-                    validationErrors.email ? 'border-destructive focus:ring-destructive/20' : ''
-                  }`}
-                />
-              </div>
-              {validationErrors.email && (
-                <p className="text-xs font-semibold text-destructive ml-1 animate-slide-in-right">
-                  {t(validationErrors.email)}
-                </p>
-              )}
+          {/* Icon + Title */}
+          <div className="mb-7">
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-5" style={{ background: 'linear-gradient(135deg,#0d9488,#0f766e)' }}>
+              <Lock className="w-7 h-7 text-white" />
             </div>
+            <h2 className="text-2xl font-bold text-foreground mb-1">
+              {step === 'email' ? t('forgotPasswordTitle') : t('resetPasswordTitle')}
+            </h2>
+            <p className="text-muted-foreground text-sm">
+              {step === 'email' ? t('forgotPasswordDescription') : t('resetPasswordDescription')}
+            </p>
+          </div>
 
-            <div className="flex flex-col gap-3">
-                {/* Submit Button */}
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full h-14 rounded-xl bg-gradient-to-r from-primary to-accent hover:to-primary text-white font-bold text-lg shadow-lg shadow-primary/25 hover:shadow-primary/40 active:scale-[0.98] transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      <span>{t('loading')}</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>{t('forgotPasswordButton')}</span>
-                      <ArrowRight className="w-5 h-5" />
-                    </>
-                  )}
-                </button>
-
-                {/* Back Button */}
-                <button
-                  type="button"
-                  onClick={onBackClick}
-                  disabled={isLoading}
-                  className="w-full h-12 rounded-xl border-2 border-transparent hover:border-border/50 hover:bg-white/5 text-muted-foreground hover:text-foreground font-semibold transition-all duration-300 active:scale-[0.98] flex items-center justify-center gap-2"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  {t('backToLogin')}
-                </button>
+          {/* Alerts */}
+          {error && (
+            <div className="med-alert-error">
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              <span>{t(error)}</span>
             </div>
-          </form>
-        ) : (
-          <form onSubmit={handleResetSubmit} className="space-y-6">
-            {/* Verification Code Field */}
-            <div className="space-y-1.5 group">
-              <label className="text-sm font-semibold text-foreground/80 ml-1 group-focus-within:text-primary transition-colors">
-                  {t('verificationCode')}
-              </label>
-              <Input
-                type="text"
-                placeholder={t('verificationCodePlaceholder')}
-                value={code}
-                onChange={handleCodeChange}
-                disabled={isLoading}
-                maxLength={6}
-                className={`h-14 text-2xl font-bold text-center tracking-widest rounded-xl border-border/50 bg-background/50 backdrop-blur-sm focus:bg-background transition-all duration-300 shadow-sm hover:shadow-md focus:shadow-lg focus:ring-2 focus:ring-primary/20 ${
-                  validationErrors.code ? 'border-destructive focus:ring-destructive/20' : ''
-                }`}
-              />
-              {validationErrors.code && (
-                <p className="text-xs font-semibold text-destructive ml-1 animate-slide-in-right">
-                  {t(validationErrors.code)}
-                </p>
-              )}
+          )}
+          {successMessage && (
+            <div className="med-alert-success">
+              <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+              <span>{t(successMessage)}</span>
             </div>
+          )}
 
-            {/* New Password Field */}
-            <div className="space-y-1.5 group">
-              <label className="text-sm font-semibold text-foreground/80 ml-1 group-focus-within:text-primary transition-colors">
-                {t('newPassword')}
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                <Input
-                  type="password"
-                  placeholder={t('newPasswordPlaceholder')}
-                  value={newPassword}
-                  onChange={(e) => handleInputChange(e, 'newPassword')}
-                  disabled={isLoading}
-                  className={`pl-12 h-12 rounded-xl border-border/50 bg-background/50 backdrop-blur-sm focus:bg-background transition-all duration-300 shadow-sm hover:shadow-md focus:shadow-lg focus:ring-2 focus:ring-primary/20 ${
-                    validationErrors.newPassword ? 'border-destructive focus:ring-destructive/20' : ''
-                  }`}
-                />
-              </div>
-              {validationErrors.newPassword && (
-                <p className="text-xs font-semibold text-destructive ml-1 animate-slide-in-right">
-                  {t(validationErrors.newPassword)}
-                </p>
-              )}
-            </div>
-
-            {/* Confirm Password Field */}
-            <div className="space-y-1.5 group">
-                <label className="text-sm font-semibold text-foreground/80 ml-1 group-focus-within:text-primary transition-colors">
-                  {t('confirmPassword')}
-                </label>
+          {/* ── Step 1: Email ── */}
+          {step === 'email' ? (
+            <form onSubmit={handleEmailSubmit} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-foreground">{t('email')}</label>
                 <div className="relative">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                  <Input
+                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <input
+                    type="email"
+                    placeholder={t('emailPlaceholder')}
+                    value={email}
+                    onChange={(e) => handleInputChange(e, 'email')}
+                    disabled={isLoading}
+                    className={`med-input med-input-icon ${validationErrors.email ? 'med-input-error' : ''}`}
+                  />
+                </div>
+                {validationErrors.email && (
+                  <p className="text-xs text-destructive">{t(validationErrors.email)}</p>
+                )}
+              </div>
+
+              <button type="submit" disabled={isLoading} className="med-btn-primary">
+                {isLoading ? (
+                  <><Loader2 className="w-4 h-4 animate-spin" /><span>{t('loading')}</span></>
+                ) : (
+                  <><span>{t('forgotPasswordButton')}</span><ArrowRight className="w-4 h-4" /></>
+                )}
+              </button>
+
+              <button type="button" onClick={onBackClick} disabled={isLoading} className="med-btn-ghost">
+                <ArrowLeft className="w-4 h-4" />
+                {t('backToLogin')}
+              </button>
+            </form>
+
+          ) : (
+            /* ── Step 2: Reset ── */
+            <form onSubmit={handleResetSubmit} className="space-y-4">
+
+              {/* Code */}
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-foreground">{t('verificationCode')}</label>
+                <input
+                  type="text"
+                  placeholder={t('verificationCodePlaceholder')}
+                  value={code}
+                  onChange={handleCodeChange}
+                  disabled={isLoading}
+                  maxLength={6}
+                  className={`med-input text-center text-xl tracking-[0.5em] font-mono ${validationErrors.code ? 'med-input-error' : ''}`}
+                />
+                {validationErrors.code && (
+                  <p className="text-xs text-destructive text-center">{t(validationErrors.code)}</p>
+                )}
+              </div>
+
+              {/* New Password */}
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-foreground">{t('newPassword')}</label>
+                <div className="relative">
+                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <input
+                    type="password"
+                    placeholder={t('newPasswordPlaceholder')}
+                    value={newPassword}
+                    onChange={(e) => handleInputChange(e, 'newPassword')}
+                    disabled={isLoading}
+                    className={`med-input med-input-icon ${validationErrors.newPassword ? 'med-input-error' : ''}`}
+                  />
+                </div>
+                {validationErrors.newPassword && (
+                  <p className="text-xs text-destructive">{t(validationErrors.newPassword)}</p>
+                )}
+              </div>
+
+              {/* Confirm Password */}
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-foreground">{t('confirmPassword')}</label>
+                <div className="relative">
+                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <input
                     type="password"
                     placeholder={t('confirmPasswordPlaceholder')}
                     value={confirmPassword}
                     onChange={(e) => handleInputChange(e, 'confirmPassword')}
                     disabled={isLoading}
-                    className={`pl-12 h-12 rounded-xl border-border/50 bg-background/50 backdrop-blur-sm focus:bg-background transition-all duration-300 shadow-sm hover:shadow-md focus:shadow-lg focus:ring-2 focus:ring-primary/20 ${
-                      validationErrors.confirmPassword ? 'border-destructive focus:ring-destructive/20' : ''
-                    }`}
+                    className={`med-input med-input-icon ${validationErrors.confirmPassword ? 'med-input-error' : ''}`}
                   />
                 </div>
                 {validationErrors.confirmPassword && (
-                    <p className="text-xs font-semibold text-destructive ml-1 animate-slide-in-right">
-                    {t(validationErrors.confirmPassword)}
-                    </p>
+                  <p className="text-xs text-destructive">{t(validationErrors.confirmPassword)}</p>
                 )}
-            </div>
+              </div>
 
-            <div className="flex flex-col gap-3">
-                {/* Submit Button */}
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full h-14 rounded-xl bg-gradient-to-r from-primary to-accent hover:to-primary text-white font-bold text-lg shadow-lg shadow-primary/25 hover:shadow-primary/40 active:scale-[0.98] transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      <span>{t('loading')}</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>{t('resetPasswordButton')}</span>
-                      <ArrowRight className="w-5 h-5" />
-                    </>
-                  )}
-                </button>
+              <button type="submit" disabled={isLoading} className="med-btn-primary">
+                {isLoading ? (
+                  <><Loader2 className="w-4 h-4 animate-spin" /><span>{t('loading')}</span></>
+                ) : (
+                  <><span>{t('resetPasswordButton')}</span><ArrowRight className="w-4 h-4" /></>
+                )}
+              </button>
 
-                 {/* Back Button */}
-                 <button
-                  type="button"
-                  onClick={onBackClick}
-                  disabled={isLoading}
-                  className="w-full h-12 rounded-xl border-2 border-transparent hover:border-border/50 hover:bg-white/5 text-muted-foreground hover:text-foreground font-semibold transition-all duration-300 active:scale-[0.98] flex items-center justify-center gap-2"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  {t('backToLogin')}
-                </button>
-            </div>
-          </form>
-        )}
+              <button type="button" onClick={onBackClick} disabled={isLoading} className="med-btn-ghost">
+                <ArrowLeft className="w-4 h-4" />
+                {t('backToLogin')}
+              </button>
+            </form>
+          )}
+        </div>
       </div>
     </div>
   );

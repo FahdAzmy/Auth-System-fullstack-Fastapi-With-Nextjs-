@@ -1,16 +1,13 @@
 'use client';
-import React, { useState, useEffect } from "react"
+
+import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '@/store/store';
 import { verifyEmail, resendCode } from '@/store/auth/auth-actions';
 import { clearError, clearSuccess, clearPendingEmail } from '@/store/auth/auth-slice';
 import { useLanguage } from '@/lib/language-context';
 import { validateVerificationCode, type ValidationErrors } from '@/lib/validation';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { Loader2, Mail } from 'lucide-react';
+import { Loader2, Mail, Stethoscope, ShieldCheck, Clock, Zap, AlertCircle, CheckCircle2, RefreshCw } from 'lucide-react';
 
 interface VerifyEmailPageProps {
   onSuccess?: () => void;
@@ -21,13 +18,12 @@ export function VerifyEmailPage({ onSuccess, onBackClick }: VerifyEmailPageProps
   const { t, isRTL } = useLanguage();
   const dispatch = useDispatch<AppDispatch>();
   const { isLoading, error, successMessage, pendingEmail } = useSelector((state: RootState) => state.auth);
-  
+
   const [code, setCode] = useState('');
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
   const [canResend, setCanResend] = useState(false);
   const [timeLeft, setTimeLeft] = useState(60);
 
-  // Clear state on unmount
   useEffect(() => {
     dispatch(clearSuccess());
     return () => {
@@ -36,15 +32,13 @@ export function VerifyEmailPage({ onSuccess, onBackClick }: VerifyEmailPageProps
     };
   }, [dispatch]);
 
-  // Handle success navigation
   useEffect(() => {
     if (successMessage === 'EMAIL_VERIFIED' && onSuccess) {
-       // Only navigate if email was truly verified, not just code resent
-       const timer = setTimeout(() => {
-         dispatch(clearPendingEmail());
-         onSuccess();
-       }, 1500);
-       return () => clearTimeout(timer);
+      const timer = setTimeout(() => {
+        dispatch(clearPendingEmail());
+        onSuccess();
+      }, 1500);
+      return () => clearTimeout(timer);
     }
   }, [successMessage, onSuccess, dispatch]);
 
@@ -65,19 +59,14 @@ export function VerifyEmailPage({ onSuccess, onBackClick }: VerifyEmailPageProps
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
-    
-    if (!pendingEmail) {
-      dispatch(clearError());
-      return;
-    }
-    
+    if (!pendingEmail) { dispatch(clearError()); return; }
     dispatch(verifyEmail({ email: pendingEmail, code }));
   };
 
-  const handleResendCode = async () => {
+  const handleResendCode = () => {
     if (!pendingEmail) return;
     dispatch(resendCode(pendingEmail));
     setTimeLeft(60);
@@ -96,48 +85,95 @@ export function VerifyEmailPage({ onSuccess, onBackClick }: VerifyEmailPageProps
   };
 
   return (
-    <div className={`min-h-screen flex items-center justify-center p-4 overflow-hidden relative ${isRTL ? 'rtl' : 'ltr'}`}>
-      
-      {/* Dynamic Background Orbs */}
-      <div className="absolute top-[20%] left-[20%] w-[30rem] h-[30rem] bg-primary/20 rounded-full blur-3xl opacity-40 animate-pulse mix-blend-screen" />
-      <div className="absolute bottom-[20%] right-[20%] w-[30rem] h-[30rem] bg-accent/20 rounded-full blur-3xl opacity-40 animate-pulse delay-700 mix-blend-screen" />
+    <div className={`auth-layout ${isRTL ? 'rtl' : 'ltr'}`}>
 
-      {/* Main Glass Card */}
-      <div className="relative z-10 w-full max-w-md glass-card rounded-3xl p-8 md:p-10 animate-fade-in-up">
-        
-        {/* Header with Icon */}
-        <div className="mb-8 text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/80 to-accent/80 shadow-lg shadow-primary/30 mb-6 rotate-3 hover:rotate-6 transition-transform duration-300">
-            <Mail className="w-8 h-8 text-white drop-shadow-md" />
+      {/* ── Left Branding Panel ── */}
+      <div className="auth-panel-left">
+        <div className="relative z-10">
+          <div className="flex items-center gap-3 mb-16">
+            <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
+              <Stethoscope className="w-6 h-6 text-white" />
+            </div>
+            <span className="text-white font-bold text-xl tracking-tight">{t('brandName')}</span>
           </div>
-          <h1 className="text-3xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-primary via-purple-500 to-accent mb-2">
-            {t('verifyEmailTitle')}
+
+          <h1 className="text-4xl font-bold text-white leading-tight mb-4">
+            {t('loginHeadline')}
           </h1>
-          <p className="text-muted-foreground font-medium text-lg">
-            {t('verifyEmailDescription')}
+          <p className="text-teal-100 text-base leading-relaxed mb-12">
+            {t('verifyEmailSubheadline')}
           </p>
+
+          <div className="space-y-5">
+            {[
+              { icon: <Zap className="w-4 h-4 text-white" />, title: t('featureInstantTitle'), desc: t('featureInstantDesc') },
+              { icon: <ShieldCheck className="w-4 h-4 text-white" />, title: t('featureEvidenceTitle'), desc: t('featureEvidenceDesc') },
+              { icon: <Clock className="w-4 h-4 text-white" />, title: t('featureGuidanceTitle'), desc: t('featureGuidanceDesc') },
+            ].map((f, i) => (
+              <div key={i} className="auth-feature-item">
+                <div className="auth-feature-icon">{f.icon}</div>
+                <div>
+                  <p className="text-white font-semibold text-sm">{f.title}</p>
+                  <p className="text-teal-200 text-xs mt-0.5">{f.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
-        {/* Success/Error Message */}
-        {(error || successMessage) && (
-          <div
-            className={`mb-6 p-4 rounded-xl border font-semibold backdrop-blur-md flex items-center gap-3 animate-shake ${
-              successMessage
-                ? 'bg-green-500/10 border-green-500/20 text-green-600 dark:text-green-400'
-                : 'bg-destructive/10 border-destructive/20 text-destructive'
-            }`}
-          >
-            <div className={`w-2 h-2 rounded-full animate-pulse ${successMessage ? 'bg-green-500' : 'bg-destructive'}`} />
-            {t((successMessage || error)!)}
-          </div>
-        )}
+        <p className="relative z-10 text-teal-200 text-xs">
+          {t('copyright')}
+        </p>
+      </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-6">
-          
-          <div className="space-y-4">
-            <div className="relative group">
-              <Input
+      {/* ── Right Form Panel ── */}
+      <div className="auth-panel-right">
+        <div className="auth-form-card">
+
+          {/* Header */}
+          <div className="mb-8">
+            <div className="flex items-center gap-2 mb-8 lg:hidden">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'linear-gradient(135deg,#0d9488,#0f766e)' }}>
+                <Stethoscope className="w-4 h-4 text-white" />
+              </div>
+              <span className="font-bold text-base text-foreground">{t('brandName')}</span>
+            </div>
+
+            {/* Mail icon */}
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-5" style={{ background: 'linear-gradient(135deg,#0d9488,#0f766e)' }}>
+              <Mail className="w-7 h-7 text-white" />
+            </div>
+
+            <h2 className="text-2xl font-bold text-foreground mb-1">{t('verifyEmailTitle')}</h2>
+            <p className="text-muted-foreground text-sm">
+              {t('verifyEmailDescription')}
+              {pendingEmail && (
+                <span className="block mt-1 font-medium text-foreground">{pendingEmail}</span>
+              )}
+            </p>
+          </div>
+
+          {/* Alerts */}
+          {error && (
+            <div className="med-alert-error">
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              <span>{t(error)}</span>
+            </div>
+          )}
+          {successMessage && (
+            <div className="med-alert-success">
+              <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+              <span>{t(successMessage)}</span>
+            </div>
+          )}
+
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="space-y-5">
+
+            {/* Code input */}
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-foreground">{t('verificationCode')}</label>
+              <input
                 id="code"
                 type="text"
                 placeholder="000000"
@@ -145,61 +181,55 @@ export function VerifyEmailPage({ onSuccess, onBackClick }: VerifyEmailPageProps
                 onChange={handleCodeChange}
                 disabled={isLoading}
                 maxLength={6}
-                className={`h-16 text-center text-3xl tracking-[1em] font-mono rounded-xl border-border/50 bg-background/50 backdrop-blur-sm focus:bg-background transition-all duration-300 shadow-inner hover:shadow-md focus:shadow-lg focus:ring-2 focus:ring-primary/20 ${
-                  validationErrors.code ? 'border-destructive focus:ring-destructive/20' : ''
-                }`}
+                className={`med-input text-center text-2xl tracking-[0.5em] font-mono ${validationErrors.code ? 'med-input-error' : ''}`}
               />
-              {/* Optional: Add decorative dashes between numbers if we wanted a more complex component, but simple is good for now */}
+              {validationErrors.code && (
+                <p className="text-xs text-destructive text-center">{t(validationErrors.code)}</p>
+              )}
             </div>
-            {validationErrors.code && (
-              <p className="text-sm font-bold text-destructive text-center animate-slide-in-right">
-                {t(validationErrors.code)}
-              </p>
-            )}
-          </div>
 
-          <div className="text-center">
-             <button
+            {/* Resend */}
+            <div className="text-center">
+              <button
                 type="button"
                 onClick={handleResendCode}
                 disabled={!canResend || isLoading}
-                className={`text-sm font-bold transition-colors ${
-                    canResend 
-                    ? 'text-primary hover:text-accent hover:underline underline-offset-4 cursor-pointer' 
+                className={`inline-flex items-center gap-1.5 text-sm font-medium transition-colors ${
+                  canResend
+                    ? 'text-primary hover:text-primary/80 cursor-pointer'
                     : 'text-muted-foreground cursor-not-allowed'
                 }`}
               >
+                <RefreshCw className="w-3.5 h-3.5" />
                 {t('resendCode')}
-                {!canResend && <span className="ml-1 opacity-70">({timeLeft}s)</span>}
+                {!canResend && <span className="opacity-60">({timeLeft}s)</span>}
               </button>
-          </div>
+            </div>
 
-          <div className="flex flex-col gap-3">
+            {/* Submit */}
             <button
               type="submit"
               disabled={isLoading || code.length !== 6}
-              className="w-full h-14 rounded-xl bg-gradient-to-r from-primary to-accent hover:to-primary text-white font-bold text-lg shadow-lg shadow-primary/25 hover:shadow-primary/40 active:scale-[0.98] transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="med-btn-primary"
             >
               {isLoading ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  <span>{t('loading')}</span>
-                </>
+                <><Loader2 className="w-4 h-4 animate-spin" /><span>{t('loading')}</span></>
               ) : (
                 <span>{t('verifyButton')}</span>
               )}
             </button>
 
+            {/* Back */}
             <button
               type="button"
               onClick={onBackClick}
               disabled={isLoading}
-              className="w-full h-12 rounded-xl border-2 border-transparent hover:border-border/50 hover:bg-white/5 text-muted-foreground hover:text-foreground font-semibold transition-all duration-300 active:scale-[0.98]"
+              className="med-btn-ghost"
             >
               {t('backToLogin')}
             </button>
-          </div>
-        </form>
+          </form>
+        </div>
       </div>
     </div>
   );
