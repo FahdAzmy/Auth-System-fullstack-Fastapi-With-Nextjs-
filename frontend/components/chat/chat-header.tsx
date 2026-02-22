@@ -1,6 +1,8 @@
 'use client';
 
 import { useLanguage } from '@/lib/language-context';
+import { useSelector } from 'react-redux';
+import { RootState } from '@/store/store';
 
 interface ChatHeaderProps {
   onToggleSidebar: () => void;
@@ -8,6 +10,18 @@ interface ChatHeaderProps {
 
 export function ChatHeader({ onToggleSidebar }: ChatHeaderProps) {
   const { t, isRTL } = useLanguage();
+  const { user } = useSelector((state: RootState) => state.auth);
+
+  // Get user initials from name
+  const getInitials = (name: string | undefined) => {
+    if (!name) return 'U';
+    return name
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
 
   return (
     <header className="chat-header h-16 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-6 bg-white dark:bg-gray-950 shrink-0 z-10">
@@ -39,11 +53,11 @@ export function ChatHeader({ onToggleSidebar }: ChatHeaderProps) {
       {/* User profile */}
       <div className="flex items-center gap-4">
         <div className={`hidden sm:block ${isRTL ? 'text-left' : 'text-right'}`}>
-          <p className="text-sm font-semibold text-gray-700 dark:text-gray-200 leading-none">{t('chatDoctorName')}</p>
-          <p className="text-[11px] text-gray-500 dark:text-gray-500 mt-0.5">{t('chatClinicianId')}: #8821</p>
+          <p className="text-sm font-semibold text-gray-700 dark:text-gray-200 leading-none">{user?.name || 'User'}</p>
+          <p className="text-[11px] text-gray-500 dark:text-gray-500 mt-0.5">{user?.email || ''}</p>
         </div>
         <div className="size-10 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center text-white font-bold text-sm border-2 border-teal-200 dark:border-teal-800 shadow-md">
-          SS
+          {getInitials(user?.name)}
         </div>
       </div>
     </header>

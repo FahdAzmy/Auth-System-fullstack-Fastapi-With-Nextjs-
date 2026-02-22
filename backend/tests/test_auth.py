@@ -59,7 +59,16 @@ class TestSignUp:
         )
 
         assert response.status_code == 400
-        assert "already registered" in response.json()["detail"].lower()
+        data = response.json()
+        error_code = (
+            data["detail"]["code"]
+            if isinstance(data["detail"], dict)
+            else data["detail"]
+        )
+        assert (
+            "EMAIL_ALREADY_EXISTS" == error_code
+            or "already registered" in str(error_code).lower()
+        )
 
     @pytest.mark.asyncio
     async def test_signup_invalid_email(self, client: AsyncClient):
@@ -170,7 +179,17 @@ class TestVerifyCode:
         )
 
         assert response.status_code == 400
-        assert "invalid" in response.json()["detail"].lower()
+        assert response.status_code == 400
+        data = response.json()
+        error_code = (
+            data["detail"]["code"]
+            if isinstance(data["detail"], dict)
+            else data["detail"]
+        )
+        assert (
+            "INVALID_VERIFICATION_CODE" == error_code
+            or "invalid" in str(error_code).lower()
+        )
 
     @pytest.mark.asyncio
     async def test_verify_code_user_not_found(self, client: AsyncClient):
@@ -181,7 +200,14 @@ class TestVerifyCode:
         )
 
         assert response.status_code == 404
-        assert "not found" in response.json()["detail"].lower()
+        assert response.status_code == 404
+        data = response.json()
+        error_code = (
+            data["detail"]["code"]
+            if isinstance(data["detail"], dict)
+            else data["detail"]
+        )
+        assert "USER_NOT_FOUND" == error_code or "not found" in str(error_code).lower()
 
     @pytest.mark.asyncio
     async def test_verify_code_already_verified(
@@ -219,7 +245,17 @@ class TestVerifyCode:
         )
 
         assert response.status_code == 400
-        assert "already verified" in response.json()["detail"].lower()
+        assert response.status_code == 400
+        data = response.json()
+        error_code = (
+            data["detail"]["code"]
+            if isinstance(data["detail"], dict)
+            else data["detail"]
+        )
+        assert (
+            "EMAIL_ALREADY_VERIFIED" == error_code
+            or "already verified" in str(error_code).lower()
+        )
 
     @pytest.mark.asyncio
     async def test_verify_code_invalid_format(self, client: AsyncClient):
@@ -287,7 +323,14 @@ class TestResendCode:
         )
 
         assert response.status_code == 404
-        assert "not found" in response.json()["detail"].lower()
+        assert response.status_code == 404
+        data = response.json()
+        error_code = (
+            data["detail"]["code"]
+            if isinstance(data["detail"], dict)
+            else data["detail"]
+        )
+        assert "USER_NOT_FOUND" == error_code or "not found" in str(error_code).lower()
 
     @pytest.mark.asyncio
     async def test_resend_code_already_verified(
@@ -324,7 +367,17 @@ class TestResendCode:
         )
 
         assert response.status_code == 400
-        assert "already verified" in response.json()["detail"].lower()
+        assert response.status_code == 400
+        data = response.json()
+        error_code = (
+            data["detail"]["code"]
+            if isinstance(data["detail"], dict)
+            else data["detail"]
+        )
+        assert (
+            "EMAIL_ALREADY_VERIFIED" == error_code
+            or "already verified" in str(error_code).lower()
+        )
 
     @pytest.mark.asyncio
     async def test_resend_code_invalid_email(self, client: AsyncClient):

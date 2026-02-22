@@ -93,6 +93,17 @@ class LoginResponse(BaseModel):
 
     access_token: str
     token_type: str
+    user: UserResponse
+
+    class Config:
+        from_attributes = True
+
+
+class RefreshTokenResponse(BaseModel):
+    """Schema for user login response."""
+
+    access_token: str
+    token_type: str
 
     class Config:
         from_attributes = True

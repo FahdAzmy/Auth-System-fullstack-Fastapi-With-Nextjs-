@@ -1,5 +1,5 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
-import axiosInstance from '@/lib/axios';
+import axiosInstance, { setAccessToken } from '@/lib/axios';
 
 // Login Action
 export const login = createAsyncThunk(
@@ -7,9 +7,8 @@ export const login = createAsyncThunk(
   async (credentials: { email: string; password: string }, { rejectWithValue }) => {
     try {
       const response = await axiosInstance.post('/login', credentials);
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('access_token', response.data.access_token);
-      }
+      // Save access token in memory only
+      setAccessToken(response.data.access_token);
       return response.data;
     } catch (error: any) {
       return rejectWithValue(error);
@@ -88,9 +87,8 @@ export const logout = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       await axiosInstance.post('/logout');
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('access_token');
-      }
+      // Clear access token from memory
+      setAccessToken(null);
       return null;
     } catch (error: any) {
       return rejectWithValue(error);
@@ -98,15 +96,40 @@ export const logout = createAsyncThunk(
   }
 );
 
-// Refresh Token Action
+// Refresh Token Action — calls /refresh, saves access token in memory, then fetches profile
 export const refreshToken = createAsyncThunk(
   'auth/refresh',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await axiosInstance.post('/refresh');
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('access_token', response.data.access_token);
-      }
+      // Step 1: Call refresh endpoint (sends refresh_token cookie automatically)
+      const refreshResponse = await axiosInstance.post('/refresh');
+      const newAccessToken = refreshResponse.data.access_token;
+
+      // Step 2: Save access token in memory
+      setAccessToken(newAccessToken);
+
+      // Step 3: Call profile endpoint with the new access token
+      const profileResponse = await axiosInstance.get('/profile');
+
+      // Return both the access token and user data
+      return {
+        access_token: newAccessToken,
+        user: profileResponse.data,
+      };
+    } catch (error: any) {
+      // Clear token on failure
+      setAccessToken(null);
+      return rejectWithValue(error);
+    }
+  }
+);
+
+// Get Profile Action
+export const getProfile = createAsyncThunk(
+  'auth/getProfile',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.get('/profile');
       return response.data;
     } catch (error: any) {
       return rejectWithValue(error);

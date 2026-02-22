@@ -1,6 +1,17 @@
 import axios, { AxiosRequestConfig } from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
+// In-memory access token storage (never persisted to disk)
+let accessToken: string | null = null;
+
+export function setAccessToken(token: string | null) {
+  accessToken = token;
+}
+
+export function getAccessToken(): string | null {
+  return accessToken;
+}
 
 const axiosInstance = axios.create({
   baseURL: `${API_URL}/auth`,
@@ -10,14 +21,11 @@ const axiosInstance = axios.create({
   withCredentials: true, // For cookie support
 });
 
-// Request interceptor to add token
+// Request interceptor to add token from memory
 axiosInstance.interceptors.request.use(
   (config) => {
-    if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('access_token');
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
+    if (accessToken) {
+      config.headers.Authorization = `Bearer ${accessToken}`;
     }
     return config;
   },

@@ -61,7 +61,15 @@ class TestLogin:
             json={"email": "login@example.com", "password": "wrong-password"},
         )
         assert response.status_code == 401
-        assert "Invalid email or password" in response.json()["detail"]
+        data = response.json()
+        error_code = (
+            data["detail"]["code"]
+            if isinstance(data["detail"], dict)
+            else data["detail"]
+        )
+        assert (
+            "INVALID_CREDENTIALS" == error_code or "invalid" in str(error_code).lower()
+        )
 
     @pytest.mark.asyncio
     async def test_login_user_not_found(self, client: AsyncClient):
@@ -72,7 +80,15 @@ class TestLogin:
             json={"email": "nonexistent@example.com", "password": "SecurePass123"},
         )
         assert response.status_code == 401
-        assert "Invalid email or password" in response.json()["detail"]
+        data = response.json()
+        error_code = (
+            data["detail"]["code"]
+            if isinstance(data["detail"], dict)
+            else data["detail"]
+        )
+        assert (
+            "INVALID_CREDENTIALS" == error_code or "invalid" in str(error_code).lower()
+        )
 
     @pytest.mark.asyncio
     async def test_login_without_email(self, client: AsyncClient):
@@ -144,7 +160,17 @@ class TestRefreshToken:
         """Test refresh without token returns 401."""
         response = await client.post("/auth/refresh")
         assert response.status_code == 401
-        assert "Refresh token not found" in response.json()["detail"]
+        assert response.status_code == 401
+        data = response.json()
+        error_code = (
+            data["detail"]["code"]
+            if isinstance(data["detail"], dict)
+            else data["detail"]
+        )
+        assert (
+            "REFRESH_TOKEN_NOT_FOUND" == error_code
+            or "token not found" in str(error_code).lower()
+        )
 
     @pytest.mark.asyncio
     async def test_refresh_token_invalid(self, client: AsyncClient):

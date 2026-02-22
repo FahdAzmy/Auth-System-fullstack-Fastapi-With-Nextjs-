@@ -7,6 +7,8 @@ import {
   forgotPassword,
   resetPassword,
   resendCode,
+  getProfile,
+  refreshToken,
 } from './auth-actions';
 
 // Types
@@ -24,6 +26,7 @@ interface AuthState {
   pendingEmail: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  isInitialized: boolean; // true once the refresh attempt has completed (success or fail)
   error: string | null;
   successMessage: string | null;
 }
@@ -34,6 +37,7 @@ const initialState: AuthState = {
   pendingEmail: null,
   isAuthenticated: false,
   isLoading: false,
+  isInitialized: false,
   error: null,
   successMessage: null,
 };
@@ -70,7 +74,9 @@ const authSlice = createSlice({
       .addCase(login.fulfilled, (state, action) => {
         state.isLoading = false;
         state.isAuthenticated = true;
+        state.isInitialized = true;
         state.accessToken = action.payload.access_token;
+        state.user = action.payload.user || null;
       })
       .addCase(login.rejected, (state, action) => {
         state.isLoading = false;
@@ -154,10 +160,47 @@ const authSlice = createSlice({
       state.isLoading = false;
       state.successMessage = action.payload.message || 'VERIFICATION_CODE_RESENT';
     })
-    .addCase(resendCode.rejected, (state, action) => {
-      state.isLoading = false;
-      state.error = action.payload as string;
-    });
+      .addCase(resendCode.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      });
+
+    // Refresh Token — restores session on page refresh
+    builder
+      .addCase(refreshToken.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(refreshToken.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.isInitialized = true;
+        state.isAuthenticated = true;
+        state.accessToken = action.payload.access_token;
+        state.user = action.payload.user;
+      })
+      .addCase(refreshToken.rejected, (state) => {
+        state.isLoading = false;
+        state.isInitialized = true;
+        state.isAuthenticated = false;
+        state.accessToken = null;
+        state.user = null;
+      });
+
+    // Get Profile
+    builder
+      .addCase(getProfile.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(getProfile.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.user = action.payload;
+        state.isAuthenticated = true;
+      })
+      .addCase(getProfile.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload as string;
+      });
   },
 });
 

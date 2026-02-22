@@ -13,6 +13,7 @@ from src.models.schemas.user_schema import (
     ResendCodeRequest,
     LoginResponse,
     LoginRequest,
+    RefreshTokenResponse,
     ForgotPasswordRequest,
     ResetPasswordRequest,
 )
@@ -24,7 +25,9 @@ from src.controllers.auth_controller import (
     refresh_access_token,
     forgot_password,
     reset_password,
+    get_profile,
 )
+from src.helpers.security import get_current_user
 
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -99,7 +102,7 @@ async def login_user(
     return await login(login_data, response, db)
 
 
-@router.post("/refresh", response_model=LoginResponse)
+@router.post("/refresh", response_model=RefreshTokenResponse)
 async def refresh_endpoint(
     response: Response,
     refresh_token: str = Cookie(None),
@@ -111,7 +114,7 @@ async def refresh_endpoint(
 @router.post("/logout")
 async def logout_endpoint(response: Response):
     """Logout user by clearing refresh token cookie."""
-    response.delete_cookie(key="refresh_token")
+    response.delete_cookie(key="refresh_token", path="/")
     return {"message": "Logged out successfully"}
 
 
@@ -146,3 +149,16 @@ async def reset_password_endpoint(
     Returns success message if password is reset successfully.
     """
     return await reset_password(reset_data, db)
+
+
+@router.get("/profile", response_model=UserResponse)
+async def profile_endpoint(
+    current_user: UserResponse = Depends(get_current_user),
+):
+    """
+    Get current user profile information.
+
+    Requires a valid JWT access token in the Authorization header:
+    `Authorization: Bearer <token>`
+    """
+    return await get_profile(current_user)

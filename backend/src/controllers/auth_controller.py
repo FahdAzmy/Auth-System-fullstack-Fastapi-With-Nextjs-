@@ -22,6 +22,7 @@ from src.models.schemas.user_schema import (
     LoginResponse,
     ForgotPasswordRequest,
     ResetPasswordRequest,
+    RefreshTokenResponse,
 )
 from src.helpers.security import (
     hash_password,
@@ -225,10 +226,21 @@ async def login(
         httponly=True,
         secure=False,
         samesite="lax",
+        path="/",
         max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
     )
 
-    return LoginResponse(access_token=access_token, token_type="bearer")
+    return LoginResponse(
+        access_token=access_token,
+        user=UserResponse(
+            id=user.id,
+            name=user.name,
+            email=user.email,
+            is_verified=user.is_verified,
+            created_at=user.created_at,
+        ),
+        token_type="bearer",
+    )
 
 
 async def refresh_access_token(
@@ -271,10 +283,11 @@ async def refresh_access_token(
         httponly=True,
         secure=False,
         samesite="lax",
+        path="/",
         max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
     )
 
-    return LoginResponse(access_token=new_access_token, token_type="bearer")
+    return RefreshTokenResponse(access_token=new_access_token, token_type="bearer")
 
 
 async def forgot_password(
@@ -360,4 +373,21 @@ async def reset_password(
     user.verification_token = None  # Clear the code after use
     await db.commit()
 
-    return {"message": SuccessMessage.PASSWORD_RESET_SUCCESS}
+
+async def get_profile(current_user: User) -> UserResponse:
+    """
+    Get the profile information of the currently authenticated user.
+
+    Args:
+        current_user: The user object injected by the dependency
+
+    Returns:
+        User profile information
+    """
+    return UserResponse(
+        id=current_user.id,
+        name=current_user.name,
+        email=current_user.email,
+        is_verified=current_user.is_verified,
+        created_at=current_user.created_at,
+    )

@@ -10,8 +10,13 @@ from src.helpers.config import settings
 from jose import jwt, JWTError
 from jose.exceptions import ExpiredSignatureError
 from datetime import datetime, timedelta
-from typing import Dict
-from fastapi import HTTPException, Response
+from typing import Dict, AsyncGenerator
+from fastapi import HTTPException, Response, Depends, status
+from fastapi.security import HTTPBearer
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from src.helpers.db import get_db
+from src.models.db_scheams.user import User
 
 
 def hash_password(password: str) -> str:
@@ -144,3 +149,49 @@ def verify_refresh_token(token: str) -> Dict:
         raise HTTPException(status_code=401, detail="Refresh token has expired")
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid refresh token")
+
+
+security = HTTPBearer()
+
+
+async def get_current_user(
+    credentials=Depends(security), db: AsyncSession = Depends(get_db)
+) -> User:
+    """
+    Dependency to get the current authenticated user from a JWT token.
+
+    Args:
+        credentials: HTTPBearer credentials (the token)
+        db: Database session
+
+    Returns:
+        The User object if token is valid
+
+    Raises:
+        HTTPException: If token is invalid, expired, or user not found
+    """
+    token = credentials.credentials
+
+    try:
+        # Decode the token using the secret key and HS256 algorithm
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+        user_id = payload.get("user_id")
+        if not user_id:
+            raise HTTPException(
+                status_code=401, detail="Invalid token: missing user_id"
+            )
+    except ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token has expired")
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    # Fetch user from database
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        )
+
+    return user

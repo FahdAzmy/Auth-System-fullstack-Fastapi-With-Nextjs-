@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useRouter } from 'next/navigation';
 import { AppDispatch, RootState } from '@/store/store';
 import { login } from '@/store/auth/auth-actions';
 import { clearError } from '@/store/auth/auth-slice';
@@ -18,10 +19,18 @@ interface LoginPageProps {
 export function LoginPage({ onSignUpClick, onForgotPasswordClick }: LoginPageProps) {
   const { t, isRTL } = useLanguage();
   const dispatch = useDispatch<AppDispatch>();
-  const { isLoading, error } = useSelector((state: RootState) => state.auth);
+  const router = useRouter();
+  const { isLoading, error, isAuthenticated } = useSelector((state: RootState) => state.auth);
 
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
+
+  // Redirect to chat when authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push('/chat');
+    }
+  }, [isAuthenticated, router]);
 
   useEffect(() => {
     return () => { dispatch(clearError()); };
