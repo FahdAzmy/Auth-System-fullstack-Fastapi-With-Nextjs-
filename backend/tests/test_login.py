@@ -151,7 +151,7 @@ class TestRefreshToken:
         assert "access_token" in data
         assert data["token_type"] == "bearer"
 
-        # Verify new refresh token is set in cookies
+        # Verify new refresh token is set at cookies
         assert "refresh_token" in response.cookies
         assert response.cookies["refresh_token"] != refresh_token
 
