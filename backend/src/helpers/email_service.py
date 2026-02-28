@@ -7,6 +7,9 @@ from fastapi_mail import FastMail, MessageSchema, ConnectionConfig, MessageType
 from pydantic import EmailStr
 
 from src.helpers.config import settings
+from src.helpers.logging_config import get_logger, mask_email
+
+logger = get_logger("auth.email")
 
 
 # Email configuration
@@ -54,8 +57,14 @@ async def send_verification_email(email: EmailStr, code: str, name: str) -> None
         subtype=MessageType.html,
     )
 
-    fm = FastMail(conf)
-    await fm.send_message(message)
+    masked = mask_email(email)
+    try:
+        fm = FastMail(conf)
+        await fm.send_message(message)
+        logger.info("Verification email sent to %s", masked)
+    except Exception:
+        logger.exception("Failed to send verification email to %s", masked)
+        raise
 
 
 async def send_password_reset_email(email: EmailStr, code: str, name: str) -> None:
@@ -90,5 +99,11 @@ async def send_password_reset_email(email: EmailStr, code: str, name: str) -> No
         subtype=MessageType.html,
     )
 
-    fm = FastMail(conf)
-    await fm.send_message(message)
+    masked = mask_email(email)
+    try:
+        fm = FastMail(conf)
+        await fm.send_message(message)
+        logger.info("Password reset email sent to %s", masked)
+    except Exception:
+        logger.exception("Failed to send password reset email to %s", masked)
+        raise

@@ -17,6 +17,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from src.helpers.db import get_db
 from src.models.db_scheams.user import User
+from src.helpers.logging_config import get_logger
+
+logger = get_logger("auth.security")
 
 
 def hash_password(password: str) -> str:
@@ -79,6 +82,11 @@ def generate_access_token(user_id: str | int) -> str:
         "iat": datetime.utcnow(),  # issued at
         "type": "access",
     }
+    logger.info(
+        "Access token generated for user_id=%s, expires_in=%d min",
+        user_id,
+        settings.ACCESS_TOKEN_EXPIRE_MINUTES,
+    )
     return jwt.encode(payload, settings.SECRET_KEY, algorithm="HS256")
 
 
@@ -100,6 +108,11 @@ def generate_refresh_token(user_id: str | int) -> str:
         "type": "refresh",
         "jti": str(uuid.uuid4()),
     }
+    logger.info(
+        "Refresh token generated for user_id=%s, expires_in=%d days",
+        user_id,
+        settings.REFRESH_TOKEN_EXPIRE_DAYS,
+    )
     return jwt.encode(payload, settings.REFRESH_SECRET_KEY, algorithm="HS256")
 
 
@@ -119,11 +132,15 @@ def verify_access_token(token: str) -> Dict:
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
         if payload.get("type") != "access":
+            logger.warning("Access token verification failed — wrong token type")
             raise HTTPException(status_code=401, detail="Invalid token type")
+        logger.info("Access token verified for user_id=%s", payload.get("user_id"))
         return payload
     except ExpiredSignatureError:
+        logger.warning("Access token verification failed — token expired")
         raise HTTPException(status_code=401, detail="Token has expired")
     except JWTError:
+        logger.warning("Access token verification failed — invalid token")
         raise HTTPException(status_code=401, detail="Invalid token")
 
 
@@ -143,11 +160,15 @@ def verify_refresh_token(token: str) -> Dict:
     try:
         payload = jwt.decode(token, settings.REFRESH_SECRET_KEY, algorithms=["HS256"])
         if payload.get("type") != "refresh":
+            logger.warning("Refresh token verification failed — wrong token type")
             raise HTTPException(status_code=401, detail="Invalid token type")
+        logger.info("Refresh token verified for user_id=%s", payload.get("user_id"))
         return payload
     except ExpiredSignatureError:
+        logger.warning("Refresh token verification failed — token expired")
         raise HTTPException(status_code=401, detail="Refresh token has expired")
     except JWTError:
+        logger.warning("Refresh token verification failed — invalid token")
         raise HTTPException(status_code=401, detail="Invalid refresh token")
 
 
@@ -177,12 +198,15 @@ async def get_current_user(
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
         user_id = payload.get("user_id")
         if not user_id:
+            logger.warning("get_current_user — token missing user_id")
             raise HTTPException(
                 status_code=401, detail="Invalid token: missing user_id"
             )
     except ExpiredSignatureError:
+        logger.warning("get_current_user — token expired")
         raise HTTPException(status_code=401, detail="Token has expired")
     except JWTError:
+        logger.warning("get_current_user — invalid token")
         raise HTTPException(status_code=401, detail="Invalid token")
 
     # Fetch user from database
@@ -190,8 +214,10 @@ async def get_current_user(
     user = result.scalar_one_or_none()
 
     if not user:
+        logger.warning("get_current_user — user not found for user_id=%s", user_id)
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
         )
 
+    logger.info("Authenticated user_id=%s", user_id)
     return user
