@@ -10,6 +10,7 @@ from src.helpers.config import settings
 from src.helpers.errorHandler import AppException
 from src.helpers.errorCodes import ErrorCode
 from src.helpers.successMessages import SuccessMessage
+from src.helpers.logging_config import get_logger, mask_email
 
 
 from src.models.db_scheams.user import User
@@ -35,6 +36,8 @@ from src.helpers.security import (
 )
 from src.helpers.email_service import send_verification_email, send_password_reset_email
 
+logger = get_logger("auth.controller")
+
 
 async def signup(
     user_data: UserCreate, db: AsyncSession, background_tasks: BackgroundTasks
@@ -53,11 +56,15 @@ async def signup(
     Raises:
         HTTPException: If email already exists
     """
+    masked = mask_email(user_data.email)
+    logger.info("Signup attempt for email=%s", masked)
+
     # Check if email already exists
     result = await db.execute(select(User).where(User.email == user_data.email))
     existing_user = result.scalar_one_or_none()
 
     if existing_user:
+        logger.warning("Signup rejected — email already exists: %s", masked)
         raise AppException(
             status_code=status.HTTP_400_BAD_REQUEST, code=ErrorCode.EMAIL_ALREADY_EXISTS
         )
@@ -79,6 +86,8 @@ async def signup(
     await db.commit()
     await db.refresh(new_user)
 
+    logger.info("User created successfully: id=%s, email=%s", new_user.id, masked)
+
     # Send verification code email in background
     background_tasks.add_task(
         send_verification_email,
@@ -86,6 +95,7 @@ async def signup(
         code=verification_code,
         name=new_user.name,
     )
+    logger.info("Verification email queued for email=%s", masked)
 
     return UserResponse(
         id=new_user.id,
@@ -110,16 +120,21 @@ async def verify_email(verify_data: VerifyCodeRequest, db: AsyncSession) -> dict
     Raises:
         HTTPException: If code is invalid or email not found
     """
+    masked = mask_email(verify_data.email)
+    logger.info("Email verification attempt for email=%s", masked)
+
     # Find user by email
     result = await db.execute(select(User).where(User.email == verify_data.email))
     user = result.scalar_one_or_none()
 
     if not user:
+        logger.warning("Verification failed — user not found: email=%s", masked)
         raise AppException(
             status_code=status.HTTP_404_NOT_FOUND, code=ErrorCode.USER_NOT_FOUND
         )
 
     if user.is_verified:
+        logger.warning("Verification rejected — already verified: user_id=%s", user.id)
         raise AppException(
             status_code=status.HTTP_400_BAD_REQUEST,
             code=ErrorCode.EMAIL_ALREADY_VERIFIED,
@@ -127,6 +142,7 @@ async def verify_email(verify_data: VerifyCodeRequest, db: AsyncSession) -> dict
 
     # Check verification code
     if user.verification_token != verify_data.code:
+        logger.warning("Verification failed — invalid code for user_id=%s", user.id)
         raise AppException(
             status_code=status.HTTP_400_BAD_REQUEST,
             code=ErrorCode.INVALID_VERIFICATION_CODE,
@@ -139,6 +155,7 @@ async def verify_email(verify_data: VerifyCodeRequest, db: AsyncSession) -> dict
 
     await db.commit()
 
+    logger.info("Email verified successfully: user_id=%s", user.id)
     return {"message": SuccessMessage.EMAIL_VERIFIED}
 
 
@@ -159,16 +176,21 @@ async def resend_verification_code(
     Raises:
         HTTPException: If user not found or already verified
     """
+    masked = mask_email(resend_data.email)
+    logger.info("Resend verification code request for email=%s", masked)
+
     # Find user by email
     result = await db.execute(select(User).where(User.email == resend_data.email))
     user = result.scalar_one_or_none()
 
     if not user:
+        logger.warning("Resend code failed — user not found: email=%s", masked)
         raise AppException(
             status_code=status.HTTP_404_NOT_FOUND, code=ErrorCode.USER_NOT_FOUND
         )
 
     if user.is_verified:
+        logger.warning("Resend code rejected — already verified: user_id=%s", user.id)
         raise AppException(
             status_code=status.HTTP_400_BAD_REQUEST,
             code=ErrorCode.EMAIL_ALREADY_VERIFIED,
@@ -189,6 +211,7 @@ async def resend_verification_code(
         name=user.name,
     )
 
+    logger.info("New verification code sent to user_id=%s, email=%s", user.id, masked)
     return {"message": SuccessMessage.VERIFICATION_CODE_RESENT}
 
 
@@ -208,10 +231,14 @@ async def login(
     Raises:
         HTTPException: If user not found or invalid credentials
     """
+    masked = mask_email(login_data.email)
+    logger.info("Login attempt for email=%s", masked)
+
     # Find user by email
     result = await db.execute(select(User).where(User.email == login_data.email))
     user = result.scalar_one_or_none()
     if not user or not verify_password(login_data.password, user.hashed_password):
+        logger.warning("Login failed — invalid credentials for email=%s", masked)
         raise AppException(
             status_code=status.HTTP_401_UNAUTHORIZED, code=ErrorCode.INVALID_CREDENTIALS
         )
@@ -229,6 +256,8 @@ async def login(
         path="/",
         max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
     )
+
+    logger.info("Login successful: user_id=%s, email=%s", user.id, masked)
 
     return LoginResponse(
         access_token=access_token,
@@ -262,7 +291,10 @@ async def refresh_access_token(
     Raises:
         HTTPException: If refresh token is invalid or expired
     """
+    logger.info("Token refresh attempt")
+
     if not refresh_token:
+        logger.warning("Token refresh failed — no refresh token in cookie")
         raise AppException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             code=ErrorCode.REFRESH_TOKEN_NOT_FOUND,
@@ -271,6 +303,8 @@ async def refresh_access_token(
     # Verify refresh token
     payload = verify_refresh_token(refresh_token)
     user_id = payload.get("user_id")
+
+    logger.info("Refresh token verified for user_id=%s", user_id)
 
     # Generate new tokens
     new_access_token = generate_access_token(user_id)
@@ -287,6 +321,7 @@ async def refresh_access_token(
         max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
     )
 
+    logger.info("Tokens refreshed successfully for user_id=%s", user_id)
     return RefreshTokenResponse(access_token=new_access_token, token_type="bearer")
 
 
@@ -309,11 +344,15 @@ async def forgot_password(
     Raises:
         HTTPException: If user not found
     """
+    masked = mask_email(forgot_data.email)
+    logger.info("Forgot password request for email=%s", masked)
+
     # Find user by email
     result = await db.execute(select(User).where(User.email == forgot_data.email))
     user = result.scalar_one_or_none()
 
     if not user:
+        logger.warning("Forgot password failed — user not found: email=%s", masked)
         raise AppException(
             status_code=status.HTTP_404_NOT_FOUND, code=ErrorCode.USER_NOT_FOUND
         )
@@ -333,6 +372,7 @@ async def forgot_password(
         name=user.name,
     )
 
+    logger.info("Password reset code sent to user_id=%s, email=%s", user.id, masked)
     return {"message": SuccessMessage.PASSWORD_RESET_CODE_SENT}
 
 
@@ -353,17 +393,22 @@ async def reset_password(
     Raises:
         HTTPException: If user not found or code is invalid
     """
+    masked = mask_email(reset_data.email)
+    logger.info("Password reset attempt for email=%s", masked)
+
     # Find user by email
     result = await db.execute(select(User).where(User.email == reset_data.email))
     user = result.scalar_one_or_none()
 
     if not user:
+        logger.warning("Password reset failed — user not found: email=%s", masked)
         raise AppException(
             status_code=status.HTTP_404_NOT_FOUND, code=ErrorCode.USER_NOT_FOUND
         )
 
     # Check reset code
     if user.verification_token is None or user.verification_token != reset_data.code:
+        logger.warning("Password reset failed — invalid code for user_id=%s", user.id)
         raise AppException(
             status_code=status.HTTP_400_BAD_REQUEST, code=ErrorCode.INVALID_RESET_CODE
         )
@@ -372,6 +417,8 @@ async def reset_password(
     user.hashed_password = hash_password(reset_data.new_password)
     user.verification_token = None  # Clear the code after use
     await db.commit()
+
+    logger.info("Password reset successful for user_id=%s, email=%s", user.id, masked)
 
 
 async def get_profile(current_user: User) -> UserResponse:
@@ -384,6 +431,7 @@ async def get_profile(current_user: User) -> UserResponse:
     Returns:
         User profile information
     """
+    logger.info("Profile requested for user_id=%s", current_user.id)
     return UserResponse(
         id=current_user.id,
         name=current_user.name,

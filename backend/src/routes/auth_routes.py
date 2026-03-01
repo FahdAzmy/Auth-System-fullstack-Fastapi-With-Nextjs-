@@ -28,7 +28,9 @@ from src.controllers.auth_controller import (
     get_profile,
 )
 from src.helpers.security import get_current_user
+from src.helpers.logging_config import get_logger
 
+logger = get_logger("auth.routes")
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -115,6 +117,7 @@ async def refresh_endpoint(
 async def logout_endpoint(response: Response):
     """Logout user by clearing refresh token cookie."""
     response.delete_cookie(key="refresh_token", path="/")
+    logger.info("User logged out — refresh token cookie cleared")
     return {"message": "Logged out successfully"}
 
 
