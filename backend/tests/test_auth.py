@@ -367,7 +367,6 @@ class TestResendCode:
         )
 
         assert response.status_code == 400
-        assert response.status_code == 400
         data = response.json()
         error_code = (
             data["detail"]["code"]
