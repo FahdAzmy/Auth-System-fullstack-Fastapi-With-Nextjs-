@@ -24,7 +24,7 @@ class User(Base):
     is_active = Column(Boolean, default=False)  # Set True after email verification
     is_verified = Column(Boolean, default=False)
     verification_token = Column(String(255), nullable=True)
-
+    role = Column(String(20), default="user")  # user | admin
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

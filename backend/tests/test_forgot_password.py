@@ -1,6 +1,5 @@
 """
 Tests for Forgot Password functionality.
-Following TDD approach - tests written before implementation.
 """
 
 import pytest
@@ -8,6 +7,18 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.helpers.security import hash_password
 from src.models.db_scheams.user import User
+
+
+def get_error_code(response_json: dict) -> str:
+    """
+    Extract error code from response, handling both formats:
+    - {"detail": {"code": "ERROR_CODE"}}   (AppException format)
+    - {"detail": "some string"}            (plain HTTPException format)
+    """
+    detail = response_json.get("detail", "")
+    if isinstance(detail, dict):
+        return detail.get("code", "")
+    return str(detail)
 
 
 class TestForgotPassword:
@@ -36,8 +47,10 @@ class TestForgotPassword:
         )
 
         assert response.status_code == 200
-        assert "message" in response.json()
-        assert "reset code sent" in response.json()["message"].lower()
+        data = response.json()
+        assert "message" in data
+        # The controller returns SuccessMessage.PASSWORD_RESET_CODE_SENT
+        assert data["message"] == "PASSWORD_RESET_CODE_SENT"
 
         # Verify reset code was stored in database
         await db_session.refresh(user)
@@ -53,7 +66,8 @@ class TestForgotPassword:
         )
 
         assert response.status_code == 404
-        assert "not found" in response.json()["detail"].lower()
+        error_code = get_error_code(response.json())
+        assert error_code == "USER_NOT_FOUND"
 
     @pytest.mark.asyncio
     async def test_forgot_password_missing_email(self, client: AsyncClient):
@@ -106,8 +120,9 @@ class TestResetPassword:
         )
 
         assert response.status_code == 200
-        assert "message" in response.json()
-        assert "password reset successfully" in response.json()["message"].lower()
+        data = response.json()
+        assert "message" in data
+        assert data["message"] == "PASSWORD_RESET_SUCCESS"
 
         # Verify password was changed and token cleared
         await db_session.refresh(user)
@@ -147,7 +162,8 @@ class TestResetPassword:
         )
 
         assert response.status_code == 400
-        assert "invalid" in response.json()["detail"].lower()
+        error_code = get_error_code(response.json())
+        assert error_code == "INVALID_RESET_CODE"
 
     @pytest.mark.asyncio
     async def test_reset_password_user_not_found(self, client: AsyncClient):
@@ -162,7 +178,8 @@ class TestResetPassword:
         )
 
         assert response.status_code == 404
-        assert "not found" in response.json()["detail"].lower()
+        error_code = get_error_code(response.json())
+        assert error_code == "USER_NOT_FOUND"
 
     @pytest.mark.asyncio
     async def test_reset_password_missing_fields(self, client: AsyncClient):
@@ -215,4 +232,5 @@ class TestResetPassword:
         )
 
         assert response.status_code == 400
-        assert "invalid" in response.json()["detail"].lower()
+        error_code = get_error_code(response.json())
+        assert error_code == "INVALID_RESET_CODE"

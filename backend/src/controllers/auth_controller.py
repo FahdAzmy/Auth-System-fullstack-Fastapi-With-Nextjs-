@@ -419,6 +419,7 @@ async def reset_password(
     await db.commit()
 
     logger.info("Password reset successful for user_id=%s, email=%s", user.id, masked)
+    return {"message": SuccessMessage.PASSWORD_RESET_SUCCESS}
 
 
 async def get_profile(current_user: User) -> UserResponse:
